@@ -5,6 +5,11 @@ node_modules/
 data/*.db
 data/*.db-wal
 data/*.db-shm
+# 提交信息草稿与调试输出
+data/commit-msg.txt
+
+# 本地构建产物（APK 由 GitHub Actions 构建并发布到 Releases，不入库）
+dist/
 
 # 运行设置（本机个人配置，不入库）
 config/settings.json

@@ -82,12 +82,18 @@ const checks = [
   ['后台补正文单独标记（background）', /background:\s*background|runtime\.background/, appStore],
   ['界面区分「后台补正文」阶段', /st\?\.background/, appJs],
   // v1.4：学院专栏抓全 + 详情兜底
-  ['学院栏目已扩充（团学动态）', /团学动态/, shared],
-  ['学院栏目已扩充（教育管理）', /教育管理/, shared],
-  ['学院栏目已扩充（学位管理）', /学位管理/, shared],
-  ['学院栏目已扩充（招生信息）', /招生信息/, shared],
+  //
+  // ⚠ 这里必须断言 **URL 路径** 而不是栏目中文名：
+  //   esbuild 会把内嵌 JSON 里的中文转成 \uXXXX 转义（`团学动态` → `\u56E2\u5B66...`），
+  //   所以按中文字面量搜永远搜不到，会误判成「未包含」。URL 路径不会被转义。
+  ['学院栏目已扩充（团学动态 xsgz/txdt）', /xsgz\/txdt/, shared],
+  ['学院栏目已扩充（教育管理 yjspy/jygl）', /yjspy\/jygl/, shared],
+  ['学院栏目已扩充（学位管理 yjspy/xwgl）', /yjspy\/xwgl/, shared],
+  ['学院栏目已扩充（招生信息 zsxx.htm）', /zsxx\.htm/, shared],
+  ['学院栏目已扩充（工会工作 dqgz/ghgz）', /dqgz\/ghgz/, shared],
+  ['学院栏目 id 至少到 col-cst-15', /col-cst-15/, shared],
   ['详情「未抓取到正文」兜底块', /nocontent-box/, appJs],
-  ['兜底块提供原文按钮', /查看官网原文/, appJs],
+  ['兜底块提供原文按钮', /查看官网原文|\\u67E5\\u770B\\u5B98\\u7F51\\u539F\\u6587/, appJs],
 ];
 
 let stale = 0;

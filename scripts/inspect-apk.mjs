@@ -141,36 +141,49 @@ for (const [name, checks] of contentTargets) {
 // ---------------------------------------------------------------- 明文 HTTP 放行
 //
 // ⚠ 这一项曾经缺失，后果是「手机 App 搜索不到任何东西、文章打不开」：
-//   学校 102 个信源里 96 个只有 http://（站点没有 HTTPS），而 Android 9+ 对
+//   学校 113 个信源里 96 个只有 http://（站点没有 HTTPS），而 Android 9+ 对
 //   targetSdk ≥ 28 的应用默认禁止明文流量，于是所有请求在系统层被拦掉。
 //   build.gradle 用的是 Capacitor 模板（默认 targetSdk = compileSdk = 36），
-//   所以只要 assets 里的网络配置丢了，App 就会整体抓不到数据。
+//   所以只要网络配置丢了，App 就会整体抓不到数据。
 //
-// 注意：release 的 AndroidManifest.xml 是 AXML 二进制格式，
-// 字符串以 UTF-16LE 存储，必须按 UTF-16LE 比对，用 UTF-8 搜不出来。
+// 检测要点（踩过三次坑，别再想当然）：
+//   1) release 的 AndroidManifest.xml 是 AXML 二进制。里面存的是**属性名**
+//      `networkSecurityConfig`，而属性值 `@xml/network_security_config` 被编译成了
+//      资源 id，**字符串池里根本没有 `network_security_config` 这个词**——
+//      所以必须搜属性名，搜路径名永远搜不到；
+//   2) 那个属性名在字符串池里是 **UTF-16LE**（AXML 的 UTF-8 池只用于纯 ASCII 且
+//      长度 ≥28 的串，实测这里落在 UTF-16 池）；
+//   3) 网络安全配置文件会被 AAPT2 混淆文件名（res/xml/network_security_config.xml
+//      → res/8G.xml），不能按路径找，只能按内容找；而它的字符串池是 **UTF-8**。
+//   因此两种编码都要试，且要认「任一编码命中」。
+const hasStr = (buf2, s) => !!buf2
+  && (buf2.includes(Buffer.from(s, 'utf8')) || buf2.includes(Buffer.from(s, 'utf16le')));
+
 console.log('\n=== 明文 HTTP 放行（Android 9+ 必需）===');
 {
   const mfEntry = byName.get('AndroidManifest.xml');
   const mf = mfEntry ? readEntry(buf, mfEntry) : null;
-  const hasRef = !!mf && mf.includes(Buffer.from('network_security_config', 'utf16le'));
+  // 搜属性名（不是资源路径名）
+  const hasRef = hasStr(mf, 'networkSecurityConfig') || hasStr(mf, 'network_security_config');
   if (!hasRef) missing++;
-  console.log(`  ${hasRef ? '✓' : '✗'} Manifest 引用 networkSecurityConfig`);
+  console.log(`  ${hasRef ? '✓' : '✗'} Manifest 声明 networkSecurityConfig`);
 
-  // 打包后的 res/xml 文件名会被混淆成 res/xx.xml，因此按内容找：文件里应含
-  // 域名与 cleartextTrafficPermitted 标记（AXML 同样是 UTF-16LE）。
-  const xmlEntries = entries.filter((e) => /^res\/.*\.xml$/.test(e.name));
-  let nscData = null;
+  // 在全部被混淆的 res/*.xml 里按内容找网络安全配置
+  const xmlEntries = entries.filter((e) => /^res\/.*\.xml$/i.test(e.name));
+  let nscData = null, nscName = null;
   for (const e of xmlEntries) {
     const d = readEntry(buf, e);
-    if (d && d.includes(Buffer.from('nuc.edu.cn', 'utf16le'))) { nscData = d; break; }
+    if (hasStr(d, 'nuc.edu.cn') && hasStr(d, 'cleartextTrafficPermitted')) {
+      nscData = d; nscName = e.name; break;
+    }
   }
   const hasDomain = !!nscData;
   if (!hasDomain) missing++;
-  console.log(`  ${hasDomain ? '✓' : '✗'} 网络安全配置含 nuc.edu.cn 域名放行`);
+  console.log(`  ${hasDomain ? '✓' : '✗'} 网络安全配置含 nuc.edu.cn 域名放行${nscName ? `（${nscName}）` : ''}`);
 
-  const hasPermit = !!nscData && nscData.includes(Buffer.from('cleartextTrafficPermitted', 'utf16le'));
+  const hasPermit = hasStr(nscData, 'cleartextTrafficPermitted') && hasStr(nscData, 'includeSubdomains');
   if (!hasPermit) missing++;
-  console.log(`  ${hasPermit ? '✓' : '✗'} cleartextTrafficPermitted 已声明`);
+  console.log(`  ${hasPermit ? '✓' : '✗'} cleartextTrafficPermitted + includeSubdomains 已声明`);
 }
 
 console.log(`\n结论: ${missing === 0 ? '✓ 内容完整，可以发布' : `✗ 有 ${missing} 项缺失，不要发布`}`);

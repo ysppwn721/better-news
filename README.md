@@ -5,6 +5,8 @@
 **📱 Android App 下载**：<https://github.com/ysppwn721/better-news/releases/download/v1.4/app-release.apk>
 
 > 安装提示：若之前装过旧版，直接覆盖安装即可（版本号已递增到 1.4）。
+> **v1.4 必须升级**——1.3 及更早的版本在 Android 9+ 上所有 `http://` 请求都会被系统
+> 拦掉（学校 113 个信源里 96 个是 http），表现就是「搜什么都没有、文章打不开」。
 > 首次打开会自动抓取全部 113 个信源，界面顶部会显示抓取进度。
 > **抓完一批就显示一批**（实测 6 秒出现内容），不必等整轮抓完。
 >
@@ -549,6 +551,24 @@ scripts/selftest.mjs        自检（43 项）
 
 数据量变化：条目 2870 → 2998；**计算机学院 134 → 262 条**（信源 5 → 16 个）。
 自检 48 项全通过，另加 `verify-android-netfix.mjs`（12 项）与详情兜底测试（12 项）。
+
+**v1.4 发布包已逐项核验**（不是「构建成功就发布」）：
+
+```bash
+node scripts/verify-apk.mjs dist/app-v1.4.apk        # 签名：v2 已签名，可安装
+node scripts/inspect-apk.mjs dist/app-v1.4.apk       # 内容完整 + 明文放行 3 项
+node scripts/check-apk-version.mjs dist/app-v1.4.apk # 26 项实现断言
+```
+
+`inspect-apk` / `check-apk-version` 的两处取证坑（都踩过，脚本里已注明）：
+
+- release 的 `AndroidManifest.xml` 是 AXML 二进制，里面存的是**属性名**
+  `networkSecurityConfig`（UTF-16LE），而属性值 `@xml/network_security_config`
+  被编译成资源 id——**字符串池里根本没有 `network_security_config` 这个词**，
+  按资源路径搜必然搜不到；网络配置文件本身又被 AAPT2 混淆成 `res/8G.xml`，
+  只能按内容找。
+- esbuild 会把内嵌 JSON 里的中文转成 `\uXXXX`，所以断言学院栏目要查 **URL 路径**
+  （`xsgz/txdt`）而不是中文名（`团学动态`），否则会误判成「未包含」。
 
 ### v1.3 —— 「看着一直在抓取」
 

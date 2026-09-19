@@ -42,15 +42,22 @@ jobs:
       - name: 安装依赖
         run: npm ci
 
-      # 数据库需要跨次运行保留，否则每次都从零开始、无法增量去重。
-      # 这里用 Actions 缓存保存 SQLite 文件。
+      # 数据库需要跨次运行保留，否则每次都从零开始建库：
+      #   条目 id 会重新分配（前端「已读」按 id 记录，会全部错位）、
+      #   增量去重失效、历史条目可能被漏掉。
+      #
+      # 注意两点：
+      #   1) key 必须是固定值。若用 ${{ github.run_id }} 作 key，每次都是新 key，
+      #      restore 时永远命不中，数据库等于没有缓存（这是本项目踩过的坑）。
+      #   2) SQLite 用 WAL 模式，须连带 -wal / -shm 一起缓存，否则会丢掉最近的事务。
       - name: 恢复历史数据库
         uses: actions/cache/restore@v4
         with:
-          path: data/better-news.db
-          key: bn-db-${{ github.run_id }}
-          restore-keys: |
-            bn-db-
+          path: |
+            data/better-news.db
+            data/better-news.db-wal
+            data/better-news.db-shm
+          key: bn-db-v1
 
       - name: 自动发现学院栏目（首次或栏目失效时执行）
         run: |
@@ -76,8 +83,11 @@ jobs:
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: data/better-news.db
-          key: bn-db-${{ github.run_id }}
+          path: |
+            data/better-news.db
+            data/better-news.db-wal
+            data/better-news.db-shm
+          key: bn-db-v1
 
       - name: 提交更新的快照
         run: |

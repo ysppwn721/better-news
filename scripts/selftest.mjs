@@ -10,6 +10,11 @@ import { buildSources, loadDiscovered } from '../src/core/sources.mjs';
 import { monthsSince } from '../src/sources/discover.mjs';
 import { CATEGORIES } from '../src/sources/registry.mjs';
 import { HttpClient } from '../src/core/http.mjs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const offline = process.argv.includes('--offline');
 let pass = 0, fail = 0;
@@ -105,6 +110,18 @@ check('每个学院至少 1 个栏目', [...perCollege.values()].every((n) => n 
 const cstSources = collegeSrc.filter((s) => s.id.startsWith('col-cst'));
 check('计算机学院栏目 ≥ 4 个', cstSources.length >= 4,
   `${cstSources.length} 个: ${cstSources.map((s) => s.name).join(' / ')}`);
+
+// 脚本编码体检：PowerShell 5.1 读 .ps1 时按系统 ANSI 代码页解码，
+// 带中文的 .ps1 若没有 UTF-8 BOM 会被解成乱码并直接语法报错
+// （踩过：编辑脚本时工具顺手去掉了 BOM，导致 -Register 注册计划任务整条失败）。
+{
+  const psFiles = readdirSync(resolve(ROOT, 'scripts')).filter((f) => f.endsWith('.ps1'));
+  const bad = psFiles.filter((f) => {
+    const b = readFileSync(resolve(ROOT, 'scripts', f));
+    return !(b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF);
+  });
+  check('PowerShell 脚本带 UTF-8 BOM', bad.length === 0, bad.join(', '));
+}
 
 // 覆盖度体检：检查「候选中的通知类栏目是否都被纳入」。
 //

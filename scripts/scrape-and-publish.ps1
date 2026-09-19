@@ -5,14 +5,22 @@
 #   49 个信源全部 fetch failed；学校站点只在中国大陆网络下可达。
 #
 # 用法：
-#   powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1             # 手动跑一次
-#   powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1 -Register   # 注册计划任务
-#   powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1 -Unregister # 取消计划任务
+#   powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1                        # 手动跑一次
+#   powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1 -Register              # 注册计划任务（默认每 3 小时）
+#   powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1 -Register -IntervalMinutes 60
+#   powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1 -Unregister            # 取消计划任务
 
 param(
     [switch]$Register,
     [switch]$Unregister,
-    [int]$IntervalMinutes = 60,
+    # 抓取间隔（分钟）。
+    #
+    # 为什么默认 180 而不是 60：本机曾经同时跑着两个抓取器（这个计划任务 +
+    # 本地服务自带的每 30 分钟 node-cron），每小时把学校站点多打一遍，
+    # 用户直接反馈「有个后台任务一直在抓取」。服务的定时抓取已关闭（BN_CRON=off），
+    # 这里也放宽到 3 小时：网页版最久 3 小时旧，电脑上的后台活动降到 1/3。
+    # 手机 App 是自己抓的，不受这个间隔影响。
+    [int]$IntervalMinutes = 180,
     [switch]$SkipFetch,
     [switch]$NoPush
 )

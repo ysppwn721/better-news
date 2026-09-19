@@ -96,6 +96,33 @@ function haystackHas(normTitle, candidate) {
 }
 
 /**
+ * 归一化后的查询候选（带缓存）。
+ *
+ * 为什么缓存：手机上一轮要过 2800+ 条标题，而 expandQuery 每次都要遍历
+ * 整张别名表再逐词做正则归一化——每个条目算一遍就是几十万次无谓运算，
+ * 输入时（每次敲键都重算）会明显发顿。按查询串缓存后，一次输入只算一次。
+ */
+const NORM_CACHE = new Map();
+
+function normalizedGroups(q) {
+  const key = String(q || '');
+  const hit = NORM_CACHE.get(key);
+  if (hit) return hit;
+  const groups = expandQuery(key).map((cands) => {
+    const set = new Set();
+    for (const c of cands) {
+      const n = normalizeForSearch(c);
+      if (n) set.add(n);
+    }
+    return [...set];
+  });
+  // 简单上限，避免用户乱敲导致缓存无限增长
+  if (NORM_CACHE.size > 200) NORM_CACHE.clear();
+  NORM_CACHE.set(key, groups);
+  return groups;
+}
+
+/**
  * 判断标题是否匹配查询（含同义词扩展，且每个词都必须出现）。
  * @param {string} title
  * @param {string} q
@@ -103,7 +130,7 @@ function haystackHas(normTitle, candidate) {
  */
 export function titleMatches(title, q) {
   const normTitle = normalizeForSearch(title);
-  const groups = expandQuery(q);
+  const groups = normalizedGroups(q);
   if (!groups.length) return false;
-  return groups.every((candidates) => candidates.some((c) => haystackHas(normTitle, c)));
+  return groups.every((candidates) => candidates.some((c) => c && normTitle.includes(c)));
 }

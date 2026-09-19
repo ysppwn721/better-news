@@ -168,55 +168,86 @@ export function applyNameBoost(columns) {
   }
   return columns.sort((a, b) => b.total - a.total);
 }
-export function columnKey(name) {
-  return String(name || '')
+/**
+ * 栏目去重键。
+ *
+ * 只按名称去重会误杀真正的独立栏目：学院站常按科室分目录，
+ * 于是有多个同名「通知公告」——例如电气与控制工程学院就有三个：
+ *   /xtgz/tzgg.htm（学生工作类，最新 7-02）
+ *   /xkky/tzgg.htm（学科科研类，最新 9-08）
+ *   /djsz/tzgg.htm（党建类，最新 5-29）
+ * 它们内容完全不同，必须都保留。
+ *
+ * 因此键 = 栏目名 + URL 的目录路径。
+ * @param {string} name
+ * @param {string} [url] 不传时退化为只按名称（兼容旧调用）
+ */
+export function columnKey(name, url) {
+  const base = String(name || '')
     .replace(/[（(].*?[)）]/g, '')
     .replace(/(学院|学部|系|中心|办公室|科室)$/g, '')
     .trim();
+  if (!url) return base;
+  try {
+    const u = new URL(url);
+    // 取目录部分（去掉文件名），用于区分同名栏目
+    const dir = u.pathname.replace(/\/[^/]*$/, '');
+    return `${base}@@${dir}`;
+  } catch {
+    return base;
+  }
 }
 
 /**
  * 为一个学院挑选要抓取的栏目。
  *
- * 判据（按优先级）：
- *   1) 最近还在更新的栏目一律纳入（默认 90 天内）——这是学生最在意的：
- *      「学院最近发的通知不能漏」。曾因为只取综合分前 2 个而漏掉最新栏目，
- *      导致用户反馈「最近发的全没有」。
- *   2) 综合分最高的作为兜底，保证每个学院至少有一个入口。
- *   3) 排除内容实测分过低且已停更很久的栏目（如只有 2021 年内容的页面）。
+ * 纳入顺序（这个顺序很关键）：
+ *   1) **通知类栏目**（名称含 通知/公告/公示）—— 学生的第一诉求，
+ *      而且学院站的通知栏更新频率往往低于教学/科研栏，
+ *      若只按「最新日期」排序会被挤掉（实测电气与控制工程学院
+ *      的「通知公告」因比教学类栏目晚一天而落到第 7 位被截断）。
+ *   2) 近 3 个月仍在更新的其它栏目（学院最近发的内容不能漏）。
+ *   3) 质量达标的次级栏目（内容相关性高，时效稍弱）。
+ *   4) 兜底：至少保证一个入口，避免学院完全没有内容。
  *
  * @param {Array} columns 已排序的候选栏目
  * @param {number} max 每学院最多抓几个（控制请求量）
- * @param {{freshMonths?: number, minContent?: number}} [opts]
+ * @param {{freshMonths?: number}} [opts]
  */
-export function pickColumns(columns, max = 6, { freshMonths = 3, minContent = 0.3 } = {}) {
+export function pickColumns(columns, max = 8, { freshMonths = 3 } = {}) {
   const out = [];
   const seen = new Set();
   const take = (c) => {
-    const key = columnKey(c.name);
+    const key = columnKey(c.name, c.url);
     if (seen.has(key)) return false;
     seen.add(key);
     out.push(c);
     return true;
   };
 
-  // 1) 新鲜栏目优先（按综合分顺序遍历，保证都是「通知类」优先）
+  // 1) 通知类优先（按综合分顺序，保证同类里质量高的先入选）
+  for (const c of columns) {
+    if (out.length >= max) break;
+    if (NOTICE_NAME_RE.test(c.name)) take(c);
+  }
+
+  // 2) 近 3 个月仍更新的栏目
   for (const c of columns) {
     if (out.length >= max) break;
     if (monthsSince(c.latest) <= freshMonths) take(c);
   }
 
-  // 2) 兜底：保证至少有一个入口
+  // 3) 质量达标的次级栏目（一年内更新过）
+  for (const c of columns) {
+    if (out.length >= max) break;
+    if (c.contentScore >= 0.6 && monthsSince(c.latest) <= 12) take(c);
+  }
+
+  // 4) 兜底：保证每个学院至少有一个入口
   if (!out.length) {
     for (const c of columns) {
       if (take(c)) break;
     }
-  }
-
-  // 3) 补充：质量达标但不够新鲜的重要栏目（如「学院新闻」这类时效稍弱但内容相关的）
-  for (const c of columns) {
-    if (out.length >= max) break;
-    if (c.contentScore >= 0.6 && monthsSince(c.latest) <= 12) take(c);
   }
 
   // 按综合分排序，让第一个是最重要的（用作默认入口）

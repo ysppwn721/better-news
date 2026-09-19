@@ -6,7 +6,8 @@
 import { Store } from '../src/store/db.mjs';
 import { parseList, parseDetail, parseDate, isRestrictedPage } from '../src/sources/cms.mjs';
 import { analyze, makeSummary, inferSubcategory } from '../src/core/keywords.mjs';
-import { buildSources } from '../src/core/sources.mjs';
+import { buildSources, loadDiscovered } from '../src/core/sources.mjs';
+import { monthsSince } from '../src/sources/discover.mjs';
 import { CATEGORIES } from '../src/sources/registry.mjs';
 import { HttpClient } from '../src/core/http.mjs';
 
@@ -86,6 +87,45 @@ check('所有信源都有栏目地址', sources.every((s) => !!s.listUrl), sourc
 check('信源 id 无重复', new Set(sources.map((s) => s.id)).size === sources.length);
 const catIds = new Set(CATEGORIES.map((c) => c.id));
 check('信源栏目 id 合法', sources.every((s) => catIds.has(s.categoryId)), sources.filter((s) => !catIds.has(s.categoryId)).map((s) => s.id).join(','));
+
+// 学院栏目覆盖度：曾因只取综合分前 2 个栏目而漏掉「最近才更新」的栏目，
+// 导致用户反馈「学院最近发的通知全没有」。这里把「不能漏掉活跃栏目」变成回归断言。
+//
+// 注意判据不是「每学院至少 N 个栏目」——有些学院站点本身内容就很少
+// （创新创业学院、仪器与电子学院、卓越工程师学院各自只有 1 个可用栏目），
+// 强行补第 2 个只会引入无关内容。真正要防的是「站点有活跃栏目却未被纳入」。
+const collegeSrc = sources.filter((s) => s.id.startsWith('col-'));
+const perCollege = new Map();
+for (const s of collegeSrc) {
+  const base = s.id.replace(/-\d+$/, '');
+  perCollege.set(base, (perCollege.get(base) || 0) + 1);
+}
+check('学院信源总数 ≥ 40', collegeSrc.length >= 40, `实际 ${collegeSrc.length}`);
+check('每个学院至少 1 个栏目', [...perCollege.values()].every((n) => n >= 1), `共 ${perCollege.size} 个学院`);
+const cstSources = collegeSrc.filter((s) => s.id.startsWith('col-cst'));
+check('计算机学院栏目 ≥ 4 个', cstSources.length >= 4,
+  `${cstSources.length} 个: ${cstSources.map((s) => s.name).join(' / ')}`);
+
+// 覆盖度体检：检查「候选中的通知类栏目是否都被纳入」。
+//
+// 为什么只盯通知类：学生的核心诉求就是通知公告。学院站的活跃栏目常有 7~10 个，
+// 超过每学院上限（8）时必然有取舍，全部纳入既不现实也会稀释信息。
+// 但「通知公告」这类栏目一个都不能漏——曾出现电气与控制工程学院的
+// 「通知公告」因比教学类栏目晚一天而被挤掉的情况。
+const discovered = loadDiscovered();
+let missedNotice = [];
+for (const [key, entry] of Object.entries(discovered)) {
+  const candidates = entry.candidates || [];
+  const noticeCols = candidates.filter((c) => /通知|公告|公示/.test(c.name || ''));
+  if (!noticeCols.length) continue;
+  const chosenUrls = new Set((entry.columns || []).map((c) => c.url));
+  const missed = noticeCols.filter((c) => !chosenUrls.has(c.url) && monthsSince(c.latest) <= 12);
+  if (missed.length) {
+    missedNotice.push(`${entry.collegeName}: ${missed.map((c) => `${c.name}(${c.latest})`).join(', ')}`);
+  }
+}
+check('候选中的通知类栏目均已纳入', missedNotice.length === 0,
+  missedNotice.slice(0, 3).join(' | ') || '全部已覆盖');
 
 // ---------- 4. 本地数据 ----------
 console.log('\n【4】本地数据');

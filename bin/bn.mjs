@@ -90,10 +90,11 @@ try {
         process.stdout.write(`  ${c.name} … `);
         try {
           const cols = await discoverColumns(client, site, { minItems: 3 });
-          // 每个学院最多抓 6 个栏目：
-          // 只取 2 个会漏掉「最近才更新的栏目」，用户反馈过「学院最近发的通知没有」。
-          // 6 个在请求量（学院站共 21×6≈126 个列表页）与覆盖度之间取平衡。
-          const chosen = pickColumns(cols, 6);
+          // 每个学院最多抓 8 个栏目。
+          // 曾因上限为 2 而漏掉「最近才更新的栏目」，用户反馈过「学院最近发的通知没有」。
+          // 通知类栏目现在会被优先纳入，这里的上限只用于约束请求量
+          // （21 学院 × 最多 8 ≈ 170 个列表页）。
+          const chosen = pickColumns(cols, 8);
           result[`col-${c.id}`] = {
             collegeId: c.id,
             collegeName: c.name,

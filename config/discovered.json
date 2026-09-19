@@ -33,7 +33,7 @@
         "contentScore": 0.7
       }
     ],
-    "discoveredAt": "2026-09-19T05:29:12.345Z",
+    "discoveredAt": "2026-09-19T06:15:32.910Z",
     "candidates": [
       {
         "url": "http://bdtywlxy.nuc.edu.cn/xtgz/gsgg.htm",
@@ -143,7 +143,7 @@
         "contentScore": 0.625
       }
     ],
-    "discoveredAt": "2026-09-19T05:29:19.357Z",
+    "discoveredAt": "2026-09-19T06:15:41.384Z",
     "candidates": [
       {
         "url": "http://3y.nuc.edu.cn/zsjy/bkszs.htm",
@@ -235,7 +235,7 @@
         "contentScore": 0
       }
     ],
-    "discoveredAt": "2026-09-19T05:29:23.234Z",
+    "discoveredAt": "2026-09-19T06:15:45.356Z",
     "candidates": [
       {
         "url": "http://cxcy.nuc.edu.cn/jxgz/jxyjjcg.htm",
@@ -300,6 +300,24 @@
         "contentScore": 0.875
       },
       {
+        "url": "http://ece.nuc.edu.cn/xkky/tzgg.htm",
+        "name": "通知公告",
+        "columnKey": "通知公告",
+        "items": 15,
+        "latest": "2026-09-08",
+        "nameScore": 100,
+        "contentScore": 0.625
+      },
+      {
+        "url": "http://ece.nuc.edu.cn/djsz/tzgg.htm",
+        "name": "通知公告",
+        "columnKey": "通知公告",
+        "items": 15,
+        "latest": "2026-05-29",
+        "nameScore": 100,
+        "contentScore": 1
+      },
+      {
         "url": "http://ece.nuc.edu.cn/jxgz.htm",
         "name": "教学工作",
         "columnKey": "教学工作",
@@ -327,25 +345,25 @@
         "contentScore": 0.875
       },
       {
-        "url": "http://ece.nuc.edu.cn/jxgz/jxyj.htm",
-        "name": "教学研究",
-        "columnKey": "教学研究",
+        "url": "http://ece.nuc.edu.cn/aqgl/tzgg.htm",
+        "name": "通知公告",
+        "columnKey": "通知公告",
         "items": 15,
-        "latest": "2026-09-09",
-        "nameScore": 55,
-        "contentScore": 0.875
+        "latest": "2024-01-31",
+        "nameScore": 100,
+        "contentScore": 0.6
       },
       {
-        "url": "http://ece.nuc.edu.cn/jxgz/jxzljk.htm",
-        "name": "教学质量监控",
-        "columnKey": "教学质量监控",
-        "items": 16,
-        "latest": "2026-09-09",
-        "nameScore": 55,
-        "contentScore": 0.75
+        "url": "http://ece.nuc.edu.cn/jxgz/jwtz.htm",
+        "name": "教务通知",
+        "columnKey": "教务通知",
+        "items": 15,
+        "latest": "2024-12-11",
+        "nameScore": 100,
+        "contentScore": 0.525
       }
     ],
-    "discoveredAt": "2026-09-19T05:29:34.325Z",
+    "discoveredAt": "2026-09-19T06:15:56.221Z",
     "candidates": [
       {
         "url": "http://ece.nuc.edu.cn/xtgz/tzgg.htm",
@@ -480,9 +498,27 @@
         "latest": "2026-07-09",
         "nameScore": 55,
         "contentScore": 0.25
+      },
+      {
+        "url": "http://hkyh.nuc.edu.cn/zsjy.htm",
+        "name": "招生就业",
+        "columnKey": "招生就业",
+        "items": 15,
+        "latest": "2026-05-28",
+        "nameScore": 35,
+        "contentScore": 0.625
+      },
+      {
+        "url": "http://hkyh.nuc.edu.cn/zsjy/jyzx.htm",
+        "name": "就业资讯",
+        "columnKey": "就业资讯",
+        "items": 15,
+        "latest": "2026-05-28",
+        "nameScore": 35,
+        "contentScore": 0.625
       }
     ],
-    "discoveredAt": "2026-09-19T05:29:40.468Z",
+    "discoveredAt": "2026-09-19T06:16:00.606Z",
     "candidates": [
       {
         "url": "http://hkyh.nuc.edu.cn/txgz/gsgg.htm",
@@ -592,7 +628,7 @@
         "contentScore": 0.625
       }
     ],
-    "discoveredAt": "2026-09-19T05:29:46.305Z",
+    "discoveredAt": "2026-09-19T06:16:06.272Z",
     "candidates": [
       {
         "url": "http://hgxy.nuc.edu.cn/zlxz/jxbgs.htm",
@@ -675,7 +711,7 @@
         "contentScore": 0.125
       }
     ],
-    "discoveredAt": "2026-09-19T05:29:49.131Z",
+    "discoveredAt": "2026-09-19T06:16:08.613Z",
     "candidates": [
       {
         "url": "http://hjaq.nuc.edu.cn/rcpy1/bksjy/pyfa.htm",
@@ -758,7 +794,7 @@
         "contentScore": 0.5
       }
     ],
-    "discoveredAt": "2026-09-19T05:29:53.839Z",
+    "discoveredAt": "2026-09-19T06:16:14.409Z",
     "candidates": [
       {
         "url": "http://jdgc.nuc.edu.cn/jyzx/zpxx.htm",
@@ -850,6 +886,15 @@
         "contentScore": 0.875
       },
       {
+        "url": "http://jxdl.nuc.edu.cn/bkspy/pyfa.htm",
+        "name": "本科生培养",
+        "columnKey": "本科生培养",
+        "items": 15,
+        "latest": "2026-05-26",
+        "nameScore": 55,
+        "contentScore": 1
+      },
+      {
         "url": "http://jxdl.nuc.edu.cn/index/xyxw.htm",
         "name": "学院新闻",
         "columnKey": "学院新闻",
@@ -893,9 +938,18 @@
         "latest": "2026-08-09",
         "nameScore": 35,
         "contentScore": 0.125
+      },
+      {
+        "url": "http://jxdl.nuc.edu.cn/zsjy1/zpxx.htm",
+        "name": "招聘信息",
+        "columnKey": "招聘信息",
+        "items": 14,
+        "latest": "2026-09-09",
+        "nameScore": 25,
+        "contentScore": 0.125
       }
     ],
-    "discoveredAt": "2026-09-19T05:30:06.802Z",
+    "discoveredAt": "2026-09-19T06:16:21.385Z",
     "candidates": [
       {
         "url": "http://jxdl.nuc.edu.cn/index/tzgg.htm",
@@ -1023,7 +1077,7 @@
         "contentScore": 0.375
       }
     ],
-    "discoveredAt": "2026-09-19T05:30:15.543Z",
+    "discoveredAt": "2026-09-19T06:16:29.700Z",
     "candidates": [
       {
         "url": "http://cst.nuc.edu.cn/xwzx/tzgg.htm",
@@ -1158,9 +1212,27 @@
         "latest": "2026-09-18",
         "nameScore": 55,
         "contentScore": 0.75
+      },
+      {
+        "url": "http://jgy.nuc.edu.cn/zlxz/jxzl.htm",
+        "name": "教学资料",
+        "columnKey": "教学资料",
+        "items": 15,
+        "latest": "2026-09-14",
+        "nameScore": 55,
+        "contentScore": 0.75
+      },
+      {
+        "url": "http://jgy.nuc.edu.cn/index/xyxw.htm",
+        "name": "新闻动态",
+        "columnKey": "新闻动态",
+        "items": 15,
+        "latest": "2026-09-09",
+        "nameScore": 79,
+        "contentScore": 0.5
       }
     ],
-    "discoveredAt": "2026-09-19T05:30:22.830Z",
+    "discoveredAt": "2026-09-19T06:16:37.358Z",
     "candidates": [
       {
         "url": "http://jgy.nuc.edu.cn/index/tzgg.htm",
@@ -1295,9 +1367,27 @@
         "latest": "2026-09-17",
         "nameScore": 55,
         "contentScore": 0.375
+      },
+      {
+        "url": "http://mkszyxy.nuc.edu.cn/dttd/djgz.htm",
+        "name": "党建工作",
+        "columnKey": "党建工作",
+        "items": 15,
+        "latest": "2026-07-10",
+        "nameScore": 55,
+        "contentScore": 0.375
+      },
+      {
+        "url": "http://mkszyxy.nuc.edu.cn/index/xsdt.htm",
+        "name": "学术动态",
+        "columnKey": "学术动态",
+        "items": 5,
+        "latest": "2025-12-31",
+        "nameScore": 34,
+        "contentScore": 0.64
       }
     ],
-    "discoveredAt": "2026-09-19T05:30:31.178Z",
+    "discoveredAt": "2026-09-19T06:16:43.495Z",
     "candidates": [
       {
         "url": "http://mkszyxy.nuc.edu.cn/index/tzgg.htm",
@@ -1376,9 +1466,18 @@
   "col-epe": {
     "collegeId": "epe",
     "collegeName": "能源与动力工程学院",
-    "listUrl": "http://epe.nuc.edu.cn/bksjy/jwdt.htm",
-    "columnName": "教务动态",
+    "listUrl": "http://epe.nuc.edu.cn/xsgz/wjtz.htm",
+    "columnName": "文件通知",
     "columns": [
+      {
+        "url": "http://epe.nuc.edu.cn/xsgz/wjtz.htm",
+        "name": "文件通知",
+        "columnKey": "文件通知",
+        "items": 15,
+        "latest": "2026-06-17",
+        "nameScore": 100,
+        "contentScore": 0.45
+      },
       {
         "url": "http://epe.nuc.edu.cn/bksjy/jwdt.htm",
         "name": "教务动态",
@@ -1416,7 +1515,7 @@
         "contentScore": 0
       }
     ],
-    "discoveredAt": "2026-09-19T05:30:39.254Z",
+    "discoveredAt": "2026-09-19T06:16:50.346Z",
     "candidates": [
       {
         "url": "http://epe.nuc.edu.cn/xsgz/wjtz.htm",
@@ -1526,7 +1625,7 @@
         "contentScore": 0.375
       }
     ],
-    "discoveredAt": "2026-09-19T05:30:43.426Z",
+    "discoveredAt": "2026-09-19T06:16:55.518Z",
     "candidates": [
       {
         "url": "http://shss.nuc.edu.cn/tzgg.htm",
@@ -1591,7 +1690,7 @@
         "contentScore": 1
       }
     ],
-    "discoveredAt": "2026-09-19T05:30:49.467Z",
+    "discoveredAt": "2026-09-19T06:17:00.873Z",
     "candidates": [
       {
         "url": "http://ss.nuc.edu.cn/rcpy/yjspy.htm",
@@ -1710,7 +1809,7 @@
         "contentScore": 0
       }
     ],
-    "discoveredAt": "2026-09-19T05:30:57.606Z",
+    "discoveredAt": "2026-09-19T06:17:07.349Z",
     "candidates": [
       {
         "url": "http://math.nuc.edu.cn/jyjx/jxdt.htm",
@@ -1802,7 +1901,7 @@
         "contentScore": 0.7
       }
     ],
-    "discoveredAt": "2026-09-19T05:31:05.469Z",
+    "discoveredAt": "2026-09-19T06:17:15.420Z",
     "candidates": [
       {
         "url": "http://tyxy.nuc.edu.cn/xsgz.htm",
@@ -1930,7 +2029,7 @@
         "contentScore": 0.625
       }
     ],
-    "discoveredAt": "2026-09-19T05:31:12.551Z",
+    "discoveredAt": "2026-09-19T06:17:23.068Z",
     "candidates": [
       {
         "url": "http://5y.nuc.edu.cn/index/tzgg.htm",
@@ -2022,7 +2121,7 @@
         "contentScore": 1
       }
     ],
-    "discoveredAt": "2026-09-19T05:31:17.850Z",
+    "discoveredAt": "2026-09-19T06:17:27.361Z",
     "candidates": [
       {
         "url": "http://6y.nuc.edu.cn/zyhbg/sjtz.htm",
@@ -2096,6 +2195,15 @@
         "contentScore": 0.5
       },
       {
+        "url": "http://art.nuc.edu.cn/zsjy/zjdt.htm",
+        "name": "招生就业",
+        "columnKey": "招生就业",
+        "items": 15,
+        "latest": "2026-05-19",
+        "nameScore": 35,
+        "contentScore": 0.625
+      },
+      {
         "url": "http://art.nuc.edu.cn/dqgz/ghhd.htm",
         "name": "工会活动",
         "columnKey": "工会活动",
@@ -2105,7 +2213,7 @@
         "contentScore": 0.5
       }
     ],
-    "discoveredAt": "2026-09-19T05:31:23.637Z",
+    "discoveredAt": "2026-09-19T06:17:33.901Z",
     "candidates": [
       {
         "url": "http://art.nuc.edu.cn/rcpy/yjspy/pydt.htm",
@@ -2197,7 +2305,7 @@
         "contentScore": 0.25
       }
     ],
-    "discoveredAt": "2026-09-19T05:31:27.544Z",
+    "discoveredAt": "2026-09-19T06:17:37.546Z",
     "candidates": [
       {
         "url": "http://zgxy.nuc.edu.cn/lht/xwdt.htm",

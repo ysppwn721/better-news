@@ -112,27 +112,34 @@ jobs:
           if [ -z "$TAG" ] || [ "$TAG" = "main" ]; then
             TAG="v1.0.0"
           fi
-          chmod +x app/android/app/build/outputs/apk/release/*.apk 2>/dev/null || true
+
+          # 说明文本用 shell 变量拼接。
+          # 注意：不能把多行文本直接写在 run: 块里的 YAML 标量中——
+          # 中文全角冒号「：」会被 YAML 当作映射键的分隔符，导致整个工作流解析失败
+          # （表现为 Actions 里「没有 job、没有日志」的假死状态）。
+          NOTES=$(cat <<'EOF'
+          ## 中北大学通知 App
+
+          **安装方式**：下载 APK 到手机，点击安装（首次需在系统设置中允许「安装未知来源应用」）。
+
+          **特性**
+          - App 自带抓取：直连 49 个校内外信源，不需要服务器，也不需要电脑开机
+          - 按栏目汇总：党务工作 / 学生工作 / 教务选课 / 研究生 / 团学活动 / 学校主页 / 学院通知
+          - 计算机科学与技术学院置顶
+          - 截止时间自动识别、关键词标签、已读收藏
+
+          **技术说明**：学校站点不返回 CORS 头，浏览器无法直接抓取，
+          因此 App 通过原生网络栈发起请求（CapacitorHttp），绕开浏览器同源策略。
+          EOF
+          )
+
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK_PATH" --clobber
             echo "已追加到已有 Release $TAG"
           else
             gh release create "$TAG" "$APK_PATH" \
               --title "中北通知 $TAG" \
-              --notes "## 中北大学通知 App
-
-**安装方式**：下载下方 APK 到手机，点击安装（首次需在系统设置里允许「安装未知来源应用」）。
-
-**特性**
-- App 自带抓取：直连 49 个校内外信源，无需服务器、不需要电脑开机
-- 按栏目汇总：党务工作 / 学生工作 / 教务选课 / 研究生 / 团学活动 / 学校主页 / 学院通知
-- 计算机科学与技术学院置顶
-- 截止时间自动识别与提醒、关键词标签、已读收藏
-
-**技术说明**：学校站点不返回 CORS 头，浏览器无法直接抓取，
-因此 App 通过原生网络栈发起请求（CapacitorHttp），绕开浏览器同源策略。
-
-构建时间：$(date -u '+%Y-%m-%d %H:%M UTC')" \
+              --notes "$NOTES" \
               --target "${{ github.sha }}"
             echo "已创建 Release $TAG"
           fi

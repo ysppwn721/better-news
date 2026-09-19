@@ -144,6 +144,7 @@ export async function fetchDetail(url, fallback = {}) {
  * @param {number} opts.maxPages 每信源最多翻几页（安全上限）
  * @param {number} opts.bodyBudget 本轮最多补多少条正文（0 = 不补）
  * @param {(p:object)=>void} opts.onProgress 进度回调
+ * @param {(p:object)=>Promise<void>|void} opts.onBatch 每批入库后的回调（界面据此提前渲染）
  */
 export async function runScrape({
   sources,
@@ -152,6 +153,7 @@ export async function runScrape({
   maxPages = 10,
   bodyBudget = 0,
   onProgress,
+  onBatch,
 } = {}) {
   const started = Date.now();
   const failed = [];
@@ -167,6 +169,7 @@ export async function runScrape({
   const pending = [];
   let inserted = 0;
   let completed = 0;
+  let collectedCount = 0;
   const FLUSH_EVERY = 10;
 
   /** 把某信源的列表条目组装成待入库对象 */
@@ -205,6 +208,8 @@ export async function runScrape({
       if (!existing.has(it.url)) { inserted++; existing.add(it.url); }
     }
     await db.upsertItems(unique);
+    // 通知界面渲染这一批——只写库不通知的话，用户还是要等整轮抓完才看得到内容
+    try { await onBatch?.({ total: existing.size }); } catch { /* 渲染失败不影响抓取 */ }
   };
 
   let done = 0;
@@ -220,7 +225,7 @@ export async function runScrape({
     done++;
     onProgress?.({ phase: 'list', done, total: sources.length, source: src.name, found: items.length });
     if (error || !items.length) failed.push(src.name);
-    if (items.length) pending.push(...buildItems(src, items));
+    if (items.length) { pending.push(...buildItems(src, items)); collectedCount += items.length; }
     completed++;
     if (completed % FLUSH_EVERY === 0) await flush();
     return { src, count: items.length };
@@ -243,9 +248,9 @@ export async function runScrape({
   // ---------- 阶段二：补正文 ----------
   let bodiesFetched = 0;
   if (bodyBudget > 0) {
-    const all = await db.allItems();
+    const allRows = await db.allItems();
     // 优先补最近发布的、且还没有正文的条目
-    const needBody = all
+    const needBody = allRows
       .filter((i) => !(i.bodyText || '').length && !i.restricted)
       .sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')))
       .slice(0, bodyBudget);
@@ -286,7 +291,7 @@ export async function runScrape({
     sources: sources.length,
     failed,
     elapsed,
-    total: unique.length,
+    total: collectedCount,
     bodiesFetched,
   };
 }

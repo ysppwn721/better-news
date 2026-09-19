@@ -331,6 +331,9 @@ class AppDataSource {
         maxPages,
         bodyBudget,
         onProgress: (p) => { runtime.progress = p; },
+        // 阶段一每落一批就刷新界面：用户打开 App 后十几秒就能看到内容，
+        // 而不是盯着「正在抓取」等一两分钟。后台补正文阶段不必刷（内容已在）。
+        onBatch: background ? undefined : () => this.#notifyChanged(),
       });
       const at = new Date().toISOString();
       runtime.lastRun = at;

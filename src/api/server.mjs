@@ -23,7 +23,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const SETTINGS_FILE = resolve(ROOT, 'config/settings.json');
 
 const DEFAULT_SETTINGS = {
-  cron: process.env.BN_CRON || '*/30 * * * *', // 默认每 30 分钟
+  cron: cronFromEnv(), // 默认每 30 分钟；BN_CRON=off 可关闭
   autoFetch: true,
   fetchColleges: false,
   pages: 2,
@@ -33,6 +33,23 @@ const DEFAULT_SETTINGS = {
   notifyImportantOnly: false,
   remindBeforeDays: 1, // 「即将截止」提前提醒天数
 };
+
+/**
+ * 服务自带定时抓取的 cron 表达式（来自 BN_CRON）。
+ *
+ * 为什么要支持「关掉」：本机已经有 Windows 计划任务每小时抓一轮并推送，
+ * 服务再自己每 30 分钟抓一次就是两个抓取器重叠——既白费请求、给学校站点加压，
+ * 又让人以为「有个后台任务一直在抓取」。
+ *
+ * 注意 `'' || 默认值` 会退回默认值（空串是假值），所以关闭必须用显式关键字，
+ * 不能靠传空串——这里踩过一次。
+ */
+function cronFromEnv() {
+  const v = (process.env.BN_CRON ?? '').trim();
+  if (!v) return '*/30 * * * *';
+  if (/^(off|none|no|0|false)$/i.test(v)) return '';
+  return v;
+}
 
 function loadSettings() {
   if (!existsSync(SETTINGS_FILE)) return { ...DEFAULT_SETTINGS };

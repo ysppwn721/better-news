@@ -147,7 +147,34 @@ class AppDataSource {
       settings: { notifyCategories: CATEGORIES.map((c) => c.id), notifyImportantOnly: false, pollInterval: 300 },
       runtime,
     };
+
+    // 后台自动刷新：数据为空或已过期时抓一次，不阻塞界面
+    this.#scheduleAutoRefresh();
     return this;
+  }
+
+  /**
+   * 判断数据是否需要刷新，并启动后台抓取。
+   *
+   * 由 App 自己抓取，所以「新鲜度」完全可控——只要用户打开就抓最新的。
+   * 但为了避免每次切回前台都发 49 个请求，加了间隔门槛。
+   */
+  #scheduleAutoRefresh({ maxAgeMinutes = 30 } = {}) {
+    const empty = this.items.length === 0;
+    const age = runtime.lastRun ? (Date.now() - new Date(runtime.lastRun).getTime()) / 60000 : Infinity;
+    if (!empty && age < maxAgeMinutes) return;
+    if (runtime.fetching) return;
+
+    // 延后一点再抓，先让界面把已有数据渲染出来
+    setTimeout(() => {
+      this.triggerFetch().catch(() => {});
+    }, empty ? 300 : 2500);
+  }
+
+  /** 供界面调用：数据是否陈旧（用于展示提示） */
+  isStale(maxAgeMinutes = 60) {
+    if (!runtime.lastRun) return true;
+    return (Date.now() - new Date(runtime.lastRun).getTime()) / 60000 > maxAgeMinutes;
   }
 
   /** 从本地条目里算截止时间（复用共享的识别规则） */

@@ -107,6 +107,8 @@ class AppDataSource {
     this.items = [];
     this.index = null;
     this.detailCache = new Map();
+    /** 数据变化时的回调，由界面注册；抓取完成后靠它触发重新渲染 */
+    this.onChange = null;
   }
 
   /** 初始化：读本地库，没有数据则自动抓一次 */
@@ -271,9 +273,22 @@ class AppDataSource {
 
     // 先跑一次轻量抓取（只抓列表），拿到最新标题与日期
     await this.#scrape({ fetchDetails: false });
-    // 抓完后异步补正文，不阻塞界面
-    this.#scrape({ fetchDetails: true, detailLimit: 6 }).catch(() => {});
+    // 关键：抓取是后台异步的，抓完必须让界面重新渲染，
+    // 否则首次启动时界面停留在「0 条」，用户看到的是空 App（本项目踩过这个坑）。
+    await this.#notifyChanged();
+    // 抓完后异步补正文，不阻塞界面；补完再刷新一次
+    this.#scrape({ fetchDetails: true, detailLimit: 6 })
+      .then(() => this.#notifyChanged())
+      .catch(() => {});
     return { started: true };
+  }
+
+  /** 数据变化后重新加载并通知界面 */
+  async #notifyChanged() {
+    await this.reload();
+    try {
+      this.onChange?.(this.items);
+    } catch { /* 界面回调异常不应影响抓取 */ }
   }
 
   async #scrape({ fetchDetails = false, detailLimit = 0 } = {}) {
@@ -318,10 +333,32 @@ class AppDataSource {
     return this.index?.settings || next;
   }
 
-  /** 重新从本地库加载（抓取完成后调用） */
+  /** 重新从本地库加载（抓取完成后由 #notifyChanged 调用） */
   async reload() {
     const items = await db.allItems();
     this.items = assignIds(items);
+    // 同步刷新索引统计，让侧栏计数、截止提醒等随之更新
+    if (this.index) {
+      this.index.total = this.items.length;
+      this.index.important = this.items.filter((i) => i.important).length;
+      this.index.categories = CATEGORIES.map((c) => ({
+        ...c,
+        total: this.items.filter((i) => i.categoryId === c.id).length,
+        latest: this.items.filter((i) => i.categoryId === c.id)
+          .map((i) => i.publishedAt).filter(Boolean).sort().pop() || null,
+      }));
+      this.index.sources = SOURCES.map((s) => ({
+        id: s.id,
+        name: s.name,
+        categoryId: s.categoryId,
+        categoryName: CATEGORIES.find((c) => c.id === s.categoryId)?.name || '其他',
+        listUrl: s.listUrl,
+        itemCount: this.items.filter((i) => i.sourceId === s.id).length,
+        lastStatus: '本机抓取',
+      }));
+      this.index.deadlines = this.#buildDeadlines();
+      this.index.generatedAt = runtime.lastRun || this.index.generatedAt;
+    }
     return this.items;
   }
 }

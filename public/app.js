@@ -864,12 +864,31 @@ function render() {
 async function updateSubtitle() {
   const st = await data.fetchStatus();
   const mode = $('#modeIndicator');
+
+  // 抓取进行中：显示进度，避免用户面对空白界面不知所措
+  // （App 首次启动要抓 102 个信源，约 1.5 分钟）
+  if (st?.fetching) {
+    const p = st.progress;
+    const detail = p && p.total
+      ? `（${p.done}/${p.total}${p.source ? ` · ${p.source}` : ''}）`
+      : '';
+    $('#brandSub').textContent = ITEMS.length
+      ? `正在更新${detail} · 已有 ${ITEMS.length} 条`
+      : `正在抓取最新通知${detail}，首次约需 1-2 分钟`;
+    $('#btnFetch').classList.add('spin');
+    $('#btnFetchDisabled').classList.add('spin');
+  } else if (data.isApi) {
+    $('#btnFetch').classList.remove('spin');
+  }
+
   if (data.isApi) {
-    if (mode) mode.textContent = '本地服务';
+    if (mode) mode.textContent = '本机数据';
     const unread = ITEMS.filter((i) => !stateStore.isRead(i)).length;
-    $('#brandSub').textContent = st.lastRun
-      ? `上次抓取 ${relTime(st.lastRun)} · 库内 ${ITEMS.length} 条 · 未读 ${unread}`
-      : `库内 ${ITEMS.length} 条 · 未读 ${unread}`;
+    if (!st?.fetching) {
+      $('#brandSub').textContent = st?.lastRun
+        ? `上次抓取 ${relTime(st.lastRun)} · 库内 ${ITEMS.length} 条 · 未读 ${unread}`
+        : `库内 ${ITEMS.length} 条 · 未读 ${unread}`;
+    }
     // 本地模式：显示「刷新」按钮（可触发抓取）
     $('#btnFetch').classList.remove('hidden');
     $('#btnFetchDisabled').classList.add('hidden');
@@ -1241,6 +1260,18 @@ async function init() {
     render();
     renderPushRow();
 
+    // App 模式下注册数据变化回调：
+    // 首次启动时库是空的，界面先渲染 0 条，随后后台抓取完成——
+    // 必须靠这个回调重新渲染，否则用户看到的永远是空 App（本项目踩过这个坑）。
+    if (typeof data.onChange !== 'undefined') {
+      data.onChange = (items) => {
+        ITEMS = items;
+        buildDeadlineIndex();
+        render();
+        updateSubtitle();
+      };
+    }
+
     // 首次进入校准提醒基线，避免把历史通知全部弹出来
     const maxId = ITEMS.reduce((m, i) => Math.max(m, i.id), 0);
     if (!stateStore.notifiedId) stateStore.setNotified(maxId);
@@ -1251,6 +1282,15 @@ async function init() {
     startNotifyPolling();
     await initPush();
     await updateSubtitle();
+
+    // 抓取进行中时加快刷新频率，让进度动起来
+    // （App 首次启动要抓 102 个信源，约 1-2 分钟，没有反馈会让人以为卡死）
+    const fastTick = setInterval(async () => {
+      const st = await data.fetchStatus();
+      if (!st?.fetching) { clearInterval(fastTick); return; }
+      await updateSubtitle();
+    }, 2000);
+    setTimeout(() => clearInterval(fastTick), 5 * 60 * 1000);
 
     // 定时刷新：API 模式重新拉取条目；两种模式都更新副标题
     setInterval(async () => {

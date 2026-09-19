@@ -5,17 +5,18 @@ apply plugin: 'com.android.application'
 
   为什么必须签名：Android 不允许安装未签名的 APK。
 
-  密钥位置：app/android/keystore/release.keystore（已在 .gitignore 中排除）
-  CI 在构建前用 keytool 生成一份；本地自行构建也照做即可。
+  密钥路径说明：build.gradle 位于 app/android/app/，
+  `file()` 相对本文件解析，`../keystore/release.keystore` 指向 app/android/keystore/。
+  （曾误写成 ../../keystore，指向 app/keystore，导致构建时找不到密钥。）
 
-  踩过的两个坑（曾导致产出无法安装的 app-release-unsigned.apk）：
-    1) 在 signingConfigs {} 里用 if 条件注册签名配置，release 配置可能实际未创建，
-       Gradle 随后安静地产出未签名包，装到手机上才失败。
-       → 这里改为无条件注册，缺密钥时用 GradleException 显式报错。
-    2) `signingConfig signingConfigs.release` 这种省略赋值的写法在嵌套块中不可靠。
-       → 统一用显式赋值 `signingConfig = signingConfigs.release`。
+  踩过的两个坑（曾产出无法安装的 app-release-unsigned.apk）：
+    1) 在 signingConfigs {} 里用 if 条件注册，release 配置可能实际未创建，
+       Gradle 安静产出未签名包，装到手机上才失败。
+       → 改为无条件注册 + 缺密钥时显式抛错。
+    2) `signingConfig signingConfigs.release` 省略赋值的写法在嵌套块中不可靠。
+       → 统一显式赋值。
 */
-def keystoreFile = file('../../keystore/release.keystore')
+def keystoreFile = file('../keystore/release.keystore')
 
 android {
     namespace = "cn.edu.nuc.betternews"

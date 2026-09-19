@@ -52,6 +52,8 @@ if (!target) { console.error('无法连接 Chrome DevTools'); process.exit(1); }
 
 const api = await connectCdp(target.webSocketDebuggerUrl);
 const errors = [];
+const netEvents = [];
+const pending = new Map();
 
 api.on('Runtime.exceptionThrown', (p) => {
   errors.push(`[异常] ${p.exceptionDetails?.exception?.description || p.exceptionDetails?.text}`);
@@ -64,10 +66,23 @@ api.on('Log.entryAdded', (p) => {
   if (/\/api\/meta/.test(u) || /\/api\/meta/.test(t)) return;
   errors.push(`[log] ${t}`);
 });
+// 记录网络请求，便于定位卡在哪个请求上
+api.on('Network.requestWillBeSent', (p) => {
+  pending.set(p.requestId, { url: p.request.url, start: Date.now() });
+});
+api.on('Network.responseReceived', (p) => {
+  const req = pending.get(p.requestId);
+  if (req) netEvents.push({ url: req.url, status: p.response.status, ms: Date.now() - req.start });
+});
+api.on('Network.loadingFailed', (p) => {
+  const req = pending.get(p.requestId);
+  if (req) netEvents.push({ url: req.url, status: `失败:${p.errorText}`, ms: Date.now() - req.start });
+});
 
 api.send('Runtime.enable');
 api.send('Log.enable');
 api.send('Page.enable');
+api.send('Network.enable');
 
 await sleep(parseInt(process.env.WAIT_MS || '15000', 10));
 
@@ -96,6 +111,14 @@ try { console.log(JSON.stringify(JSON.parse(res?.result?.value), null, 2)); } ca
 
 console.log('\n=== 运行时错误 ===');
 console.log(errors.length ? errors.map((e) => `  ${e}`).join('\n') : '  （无）');
+
+if (netEvents.length) {
+  console.log('\n=== 网络请求 ===');
+  for (const e of netEvents.slice(0, 20)) {
+    const u = e.url.replace(/^https?:\/\/[^/]+/, '');
+    console.log(`  ${String(e.status).padEnd(18)} ${String(e.ms).padStart(6)}ms  ${u.slice(0, 60)}`);
+  }
+}
 
 const shotId = api.send('Page.captureScreenshot', { format: 'png' });
 const img = await waitForResult(api, shotId, 10000);

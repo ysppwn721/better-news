@@ -120,6 +120,38 @@ export async function startServer({ store, port = 5178, host = '127.0.0.1' } = {
     res.json(result);
   });
 
+  // ---------- 全量条目（单次请求） ----------
+  /**
+   * 前端一次性拉取全部条目。
+   *
+   * 为什么不复用 /api/items 分页：经 Cloudflare 隧道等远距离链路时，
+   * 每次请求往返 16~36 秒，分 5 页就等于 100 秒以上，页面会长时间空白。
+   * 合并成一次请求后只剩一次往返。
+   */
+  app.get('/api/all', (req, res) => {
+    const { items, total } = db.listItems({ limit: 100000 });
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      total,
+      generatedAt: new Date().toISOString(),
+      items: items.map((it) => ({
+        id: it.id,
+        url: it.url,
+        title: it.title,
+        publishedAt: it.publishedAt,
+        sourceId: it.sourceId,
+        sourceName: it.sourceName,
+        categoryId: it.categoryId,
+        categoryName: it.categoryName,
+        subcategory: it.subcategory,
+        tags: it.tags,
+        important: it.important,
+        restricted: it.restricted,
+        excerpt: (it.bodyText || '').slice(0, 300).replace(/\s+/g, ' ').trim(),
+      })),
+    });
+  });
+
   // ---------- 单条详情 ----------
   app.get('/api/items/:id', (req, res) => {
     const item = db.getItem(req.params.id);

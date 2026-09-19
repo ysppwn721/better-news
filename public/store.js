@@ -169,9 +169,23 @@ class DataSource {
   /** 加载条目清单（静态模式优先用本地缓存） */
   async loadItems({ force = false } = {}) {
     if (this.mode === 'api') {
+      // 优先走单次请求的 /api/all。
+      // 原因：远距离链路（如 Cloudflare 隧道）下每次请求往返 16~36 秒，
+      // 分 5 页拉取会叠加到 100 秒以上，页面长期停在「正在载入」。
+      try {
+        const res = await fetch('./api/all', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.items) && data.items.length) {
+            this.items = data.items;
+            return this.items;
+          }
+        }
+      } catch { /* 回落分页方式 */ }
+
       const r = await fetch('./api/items?limit=200');
       const data = await r.json();
-      // API 模式有分页，逐页取全量以便前端统一做本地筛选
+      // 分页兜底：逐页取全量，以便前端统一做本地筛选
       const all = [...data.items];
       let offset = all.length;
       while (offset < data.total && offset < 5000) {

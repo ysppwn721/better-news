@@ -112,6 +112,45 @@ npm run fetch:all  # 抓取校级 + 学院
 
 ---
 
+## 两种访问方式（互补）
+
+同一份数据，两种送达方式，按需选用：
+
+| 方式 | 访问速度 | 数据新鲜度 | 电脑关机后 |
+|---|---|---|---|
+| **GitHub Pages**（主用） | 0.7 秒 | 最久 1 小时前 | 照常可用 |
+| **Cloudflare 隧道** | 6.7 秒 | **实时** | 打不开 |
+
+Pages 地址（日常用，快）：<https://ysppwn721.github.io/better-news/>
+
+### 需要看最新的时，开隧道
+
+隧道把本机服务直接映射到公网，手机访问到的就是本机数据库里的实时数据。
+
+```powershell
+# 1) 先确保本机服务在跑
+start powershell -ArgumentList "-NoExit","-Command","cd '$PWD'; node bin/bn.mjs serve --port=5178"
+
+# 2) 另开一个窗口建隧道（无需登录 Cloudflare）
+& "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --url http://127.0.0.1:5178
+```
+
+命令会打印一个 `https://xxx.trycloudflare.com` 地址，手机直接打开即可。
+注意该地址**每次重启都会变**；需要固定域名请用命名隧道（需 `wrangler login`）。
+
+### 实测数据（为什么推荐以 Pages 为主、隧道为辅）
+
+| 场景 | 耗时 |
+|---|---|
+| Pages 静态快照（单个 JSON） | 0.7 秒 |
+| 隧道 · 单次请求全量 | 6.7 秒 |
+| 隧道 · 分页 5 次拉取（旧实现） | 115 秒 ❌ |
+
+隧道每次请求要绕美国西雅图回国内，往返 16~36 秒。因此前端后来改为
+单次请求拉全量（`/api/all`），否则页面会长时间停在「正在载入」。
+
+---
+
 ## 部署到线上
 
 ### 方案 A：GitHub Pages（当前使用，无需额外账号）

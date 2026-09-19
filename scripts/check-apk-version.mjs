@@ -43,19 +43,37 @@ if (!appJs) { console.error('✗ 包内找不到 assets/public/app.js'); process
 const indexHtml = extractAsset('assets/public/index.html') || '';
 const appStore = extractAsset('assets/public/app-store.mjs') || '';
 
+// 版本号：AndroidManifest.xml 是二进制 XML，字符串存在字符串池里，
+// 编码可能是 UTF-16LE 或 UTF-8。两种都找一遍，无需 aapt 即可确认包的版本。
+const versionName = process.env.BN_EXPECT_VERSION || '1.2';
+const encodings = {
+  'UTF-16LE': Buffer.from([...versionName].flatMap((c) => [c.charCodeAt(0) & 0xff, c.charCodeAt(0) >> 8])),
+  UTF8: Buffer.from(versionName, 'utf8'),
+};
+const foundAs = Object.entries(encodings).find(([, needle]) => buf.indexOf(needle) !== -1)?.[0] || null;
+
 console.log('=== APK 内关键实现检查 ===');
 console.log(`  app.js       ${(appJs.length / 1024).toFixed(0)} KB`);
 console.log(`  app-store.mjs ${(appStore.length / 1024).toFixed(0)} KB`);
 console.log(`  index.html   ${(indexHtml.length / 1024).toFixed(0)} KB`);
+console.log(`  versionName  ${foundAs ? `✓ 含 "${versionName}"（${foundAs}）` : `✗ 未找到 "${versionName}"`}`);
+if (!foundAs) console.log('（若确认已升版本，用 BN_EXPECT_VERSION=x.y 覆盖期望值）');
 
 const checks = [
   ['置顶聚合 prioritySourceIds', /prioritySourceIds/, appJs],
   ['resetView 清空 filters', /function resetView[\s\S]{0,400}?filters\.clear\(\)/, appJs],
-  ['纯标题搜索（terms.every + title.includes）', /terms\.every\(\(t\)\s*=>\s*title\.includes\(t\)\)/, appJs],
+  // 搜索已从「terms.every + title.includes」升级为别名感知的 titleMatches()
+  // （标题写「综合素质测评」，学生搜「综测」）。旧断言会误判新版为「缺失」。
+  ['纯标题搜索 + 别名（titleMatches）', /titleMatches\(item\.title,\s*q\)/, appJs],
+  ['别名表已随包发布（aliases.mjs）', /SEARCH_ALIASES|ALIAS_MAP/, extractAsset('assets/public/aliases.mjs') || appJs],
   ['搜索不再用摘要兜底', /const excerpt = \(item\.excerpt/, appJs, true],
   ['抓取完成通知界面（onChange 回调）', /onChange/, appStore],
   ['抓取进度提示', /正在抓取最新通知|正在更新/, appJs],
   ['刷新按钮图标为元素（只转图标）', /class="btn-icon"/, indexHtml],
+  // 抓取引擎侧：翻页按「下页」链接、正文非空才覆盖、失败重试
+  ['翻页读「下页」链接（collectListPages）', /collectListPages|nextPageUrl/, appStore],
+  ['正文非空才覆盖（不清空已有正文）', /bodyText:\s*item\.bodyText\s*\|\|\s*existing\.bodyText/, appStore],
+  ['抓取失败重试', /attempts/, appStore],
 ];
 
 let stale = 0;

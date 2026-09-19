@@ -4,13 +4,42 @@
  * 为什么需要：Gradle 在签名配置缺失时不会报错，而是安静地产出
  * `app-release-unsigned.apk`，装到手机上才失败。这个检查把问题挡在构建阶段。
  *
- * 用法: node scripts/verify-apk.mjs <apk路径>
- * 无 apksigner 时退化为解析 APK 内的 META-INF 签名文件（够用）。
+ * 用法:
+ *   node scripts/verify-apk.mjs <apk路径>
+ *   node scripts/verify-apk.mjs --search <目录>    # 在目录下自动查找 release APK
+ *
+ * 无 apksigner 时退化为解析 APK 内的签名块（够用）。
  */
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { resolve, join } from 'node:path';
 
-const apk = process.argv[2];
+/** 递归查找 release APK（优先非 unsigned 的） */
+function findApk(dir, depth = 0) {
+  if (depth > 6 || !existsSync(dir)) return [];
+  const found = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, entry.name);
+    if (entry.isDirectory()) found.push(...findApk(p, depth + 1));
+    else if (/\.apk$/i.test(entry.name)) found.push(p);
+  }
+  return found;
+}
+
+let apk = process.argv[2];
+if (apk === '--search') {
+  const dir = process.argv[3] || '.';
+  const all = findApk(dir);
+  if (!all.length) {
+    console.error(`✗ 在 ${dir} 下找不到任何 .apk`);
+    process.exit(1);
+  }
+  // 优先选名字里不含 unsigned 的
+  apk = all.find((p) => !/unsigned/i.test(p)) || all[0];
+  console.log(`自动定位到 APK: ${apk}`);
+  if (all.length > 1) console.log(`（该目录下共 ${all.length} 个 APK）`);
+}
+
 if (!apk || !existsSync(apk)) {
   console.error(`✗ 找不到 APK: ${apk}`);
   process.exit(1);

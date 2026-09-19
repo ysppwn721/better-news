@@ -120,16 +120,15 @@ jobs:
           case "$APK" in
             *unsigned*) echo "::error::产物是未签名的 APK（$APK），无法安装"; exit 1 ;;
           esac
-          echo "APK_PATH=$APK" >> "$GITHUB_ENV"
-          echo "APK_SIZE=$(du -h "$APK" | cut -f1)" >> "$GITHUB_ENV"
+          # 记录仓库根目录下的绝对路径，供后续步骤使用（各步骤工作目录不同）
+          echo "APK_ABS=$(realpath "$APK")" >> "$GITHUB_ENV"
           echo "✓ 产物: $APK ($(du -h "$APK" | cut -f1))"
 
       # 校验签名：Gradle 在签名配置缺失时会安静地产出未签名包，
       # 装到手机上才失败。这一步把它挡在构建阶段。
       - name: 校验 APK 签名
         run: |
-          APK="$APK_PATH"
-          node scripts/verify-apk.mjs "$APK"
+          node scripts/verify-apk.mjs "$APK_ABS"
           echo "✓ 签名校验通过"
 
       - name: 上传 APK 为构建产物
@@ -170,10 +169,10 @@ jobs:
           )
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK_PATH" --clobber
+            gh release upload "$TAG" "$APK_ABS" --clobber
             echo "已追加到已有 Release $TAG"
           else
-            gh release create "$TAG" "$APK_PATH" \
+            gh release create "$TAG" "$APK_ABS" \
               --title "中北通知 $TAG" \
               --notes "$NOTES" \
               --target "${{ github.sha }}"

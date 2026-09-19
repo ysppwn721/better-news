@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">中北通知</string>
+    <string name="title_activity_main">中北通知</string>
+    <string name="package_name">cn.edu.nuc.betternews</string>
+    <string name="custom_url_scheme">cn.edu.nuc.betternews</string>
+</resources>

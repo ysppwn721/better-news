@@ -1,0 +1,22 @@
+{
+  "appId": "cn.edu.nuc.betternews",
+  "appName": "中北通知",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#1a56c4",
+      "showSpinner": false
+    }
+  }
+}

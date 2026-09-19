@@ -18,6 +18,20 @@ worker/.wrangler/
 worker/dist/
 worker/node_modules/
 
+# App：构建产物与签名密钥
+# www/ 由 app/build.mjs 生成，CI 会重新构建，不入库
+app/www/
+# 签名密钥绝不能入库；CI 在构建时临时生成
+app/android/keystore/
+app/android/app/build/
+app/android/build/
+app/android/.gradle/
+app/android/local.properties
+app/android/app/src/main/assets/public/
+app/android/app/src/main/assets/capacitor.config.json
+app/android/app/src/main/assets/capacitor.plugins.json
+app/android/capacitor-cordova-android-plugins/
+
 # 视觉工具产物
 .dsh-vision-router/
 

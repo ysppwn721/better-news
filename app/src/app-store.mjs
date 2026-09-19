@@ -78,7 +78,12 @@ const stateStore = {
 
 /** 抓取运行状态（供界面显示进度） */
 const runtime = {
+  // fetching：阶段一（抓列表）进行中——内容还在路上，用户确实要等
   fetching: false,
+  // background：阶段二（后台补正文）进行中——目录已全部入库，用户可正常浏览。
+  // 必须与 fetching 区分：阶段二在手机流量下可能跑几分钟，若仍按「正在抓取」
+  // 显示，用户会以为界面卡住、一直在抓取而干等（已收到此类反馈）。
+  background: false,
   progress: null,
   lastRun: local.get('lastScrapeAt', null),
   lastResult: null,
@@ -101,6 +106,9 @@ function assignIds(items) {
  * isApi 置为 true：界面据此启用「刷新」按钮并调用 triggerFetch()。
  */
 class AppDataSource {
+  /** 阶段二（后台补正文）是否在跑——避免重复启动多个后台补正文 */
+  #phase2Running = false;
+
   constructor() {
     this.mode = 'app';
     this.isApi = true; // 复用「可主动刷新」这套界面逻辑
@@ -286,9 +294,16 @@ class AppDataSource {
     // 正文不参与搜索（搜索按标题），但它是「截止提醒」的来源——
     // 报名截止日期几乎只出现在正文里，标题里没有。所以配额给得比早期大：
     // 300 条约 15MB，且只补还没正文的条目，多跑几轮就会收敛。
-    this.#scrape({ sinceMonths: 1, maxPages: 2, bodyBudget: 300 })
-      .then(() => this.#notifyChanged())
-      .catch(() => {});
+    //
+    // 标记为 background：这一阶段不再让界面显示「正在抓取」、也不占用
+    // 「正在抓取中」这道闸，用户可以照常浏览、甚至再点一次刷新。
+    if (!this.#phase2Running) {
+      this.#phase2Running = true;
+      this.#scrape({ sinceMonths: 1, maxPages: 2, bodyBudget: 300, background: true })
+        .then(() => this.#notifyChanged())
+        .catch(() => {})
+        .finally(() => { this.#phase2Running = false; });
+    }
     return { started: true };
   }
 
@@ -300,8 +315,13 @@ class AppDataSource {
     } catch { /* 界面回调异常不应影响抓取 */ }
   }
 
-  async #scrape({ sinceMonths = 6, maxPages = 10, bodyBudget = 0 } = {}) {
-    runtime.fetching = true;
+  /**
+   * @param {{sinceMonths?: number, maxPages?: number, bodyBudget?: number, background?: boolean}} opts
+   *   background=true 表示这是「内容已可用之后」的补数据阶段，界面不该显示成正在抓取。
+   */
+  async #scrape({ sinceMonths = 6, maxPages = 10, bodyBudget = 0, background = false } = {}) {
+    runtime.fetching = !background;
+    runtime.background = background;
     runtime.progress = { phase: 'list', done: 0, total: SOURCES.length, source: '' };
     try {
       const res = await runScrape({
@@ -320,6 +340,7 @@ class AppDataSource {
       return res;
     } finally {
       runtime.fetching = false;
+      runtime.background = false;
       runtime.progress = null;
     }
   }
@@ -327,6 +348,7 @@ class AppDataSource {
   async fetchStatus() {
     return {
       fetching: runtime.fetching,
+      background: runtime.background,
       progress: runtime.progress,
       lastRun: runtime.lastRun,
       lastResult: runtime.lastResult,

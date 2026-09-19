@@ -157,8 +157,58 @@ export async function runScrape({
   const failed = [];
 
   // ---------- 阶段一：列表 ----------
+  //
+  // 分批落库（而不是等 102 个信源全抓完再一次写入）：
+  // 手机上抓完 102 个信源要 1~3 分钟，若全程不落库，用户打开 App 后
+  // 会盯着「正在抓取」干等几分钟、一条内容也看不到——这正是「为什么还在抓取」
+  // 的观感来源。现在每完成约 10 个信源就写一次库并通知界面，
+  // 十几秒内列表就有内容，剩下的在后台继续补。
+  const existing = new Set((await db.allItems()).map((i) => i.url));
+  const pending = [];
+  let inserted = 0;
+  let completed = 0;
+  const FLUSH_EVERY = 10;
+
+  /** 把某信源的列表条目组装成待入库对象 */
+  const buildItems = (src, items) => items.map((li) => {
+    const { tags, audiences, important } = analyze(li.title, '');
+    let categoryId = src.categoryId;
+    if (categoryId === 'college' || categoryId === 'other') {
+      const hinted = hintCategory(li.title, categoryId);
+      if (hinted !== categoryId) categoryId = hinted;
+    }
+    return {
+      url: li.url,
+      title: li.title,
+      summary: '',
+      bodyText: '',
+      bodyHtml: '',
+      attachments: [],
+      publishedAt: li.date || null,
+      sourceId: src.id,
+      sourceName: src.name,
+      categoryId,
+      categoryName: CATEGORY_MAP[categoryId]?.name || '其他',
+      subcategory: inferSubcategory(li.title),
+      tags: [...new Set([...tags, ...audiences])],
+      important,
+      restricted: false,
+      firstSeen: new Date().toISOString(),
+    };
+  });
+
+  const flush = async () => {
+    if (!pending.length) return;
+    const batch = pending.splice(0, pending.length);
+    const unique = dedupeByTitle(batch);
+    for (const it of unique) {
+      if (!existing.has(it.url)) { inserted++; existing.add(it.url); }
+    }
+    await db.upsertItems(unique);
+  };
+
   let done = 0;
-  const listResults = await pooled(sources, concurrency, async (src) => {
+  await pooled(sources, concurrency, async (src) => {
     let items = [];
     let error = null;
     // 单个信源失败不能拖垮整轮抓取：记下失败原因，其它信源继续
@@ -170,48 +220,25 @@ export async function runScrape({
     done++;
     onProgress?.({ phase: 'list', done, total: sources.length, source: src.name, found: items.length });
     if (error || !items.length) failed.push(src.name);
-    return { src, items, error };
+    if (items.length) pending.push(...buildItems(src, items));
+    completed++;
+    if (completed % FLUSH_EVERY === 0) await flush();
+    return { src, count: items.length };
   });
 
-  const existing = new Set((await db.allItems()).map((i) => i.url));
-  const toSave = [];
-  let inserted = 0;
-  for (const r of listResults) {
-    // 抛错的信源此前被静默跳过，界面上看不出是哪一栏没抓到；
-    // 现在统一记入 failed，方便排查「哪来的新闻不全」。
-    if (!r || r.__error) { if (r?.src) failed.push(r.src.name); continue; }
-    const { src, items } = r;
-    for (const li of items) {
-      const { tags, audiences, important } = analyze(li.title, '');
-      let categoryId = src.categoryId;
-      if (categoryId === 'college' || categoryId === 'other') {
-        const hinted = hintCategory(li.title, categoryId);
-        if (hinted !== categoryId) categoryId = hinted;
-      }
-      if (!existing.has(li.url)) inserted++;
-      toSave.push({
-        url: li.url,
-        title: li.title,
-        summary: '',
-        bodyText: '',
-        bodyHtml: '',
-        attachments: [],
-        publishedAt: li.date || null,
-        sourceId: src.id,
-        sourceName: src.name,
-        categoryId,
-        categoryName: CATEGORY_MAP[categoryId]?.name || '其他',
-        subcategory: inferSubcategory(li.title),
-        tags: [...new Set([...tags, ...audiences])],
-        important,
-        restricted: false,
-        firstSeen: new Date().toISOString(),
-      });
-    }
+  await flush();
+
+  // 收尾：分批落库可能漏掉「跨批次」的同站同名条目（学院常把同一条通知
+  // 发在多个栏目下），最后按全库做一次去重，把多出来的 URL 删掉。
+  const all = await db.allItems();
+  const uniqueAll = dedupeByTitle(all);
+  if (uniqueAll.length !== all.length) {
+    const keep = new Set(uniqueAll.map((x) => x.url));
+    const dup = all.filter((x) => !keep.has(x.url)).map((x) => x.url);
+    await db.deleteItems(dup);
   }
 
-  const unique = dedupeByTitle(toSave);
-  await db.upsertItems(unique);
+  // 本轮新增计数以「入库后实际条数」为准（分批落库时上面已累加，这里不再重复）
 
   // ---------- 阶段二：补正文 ----------
   let bodiesFetched = 0;

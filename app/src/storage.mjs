@@ -108,6 +108,20 @@ export const db = {
     });
   },
 
+  /** 批量删除条目（按 url）——用于跨批次去重后清理重复项 */
+  async deleteItems(urls) {
+    const list = (urls || []).filter(Boolean);
+    if (!list.length) return 0;
+    const database = await openDb();
+    return new Promise((resolve, reject) => {
+      const t = database.transaction(STORE_ITEMS, 'readwrite');
+      const store = t.objectStore(STORE_ITEMS);
+      for (const u of list) store.delete(u);
+      t.oncomplete = () => resolve(list.length);
+      t.onerror = () => reject(t.error);
+    });
+  },
+
   /** 读取全部条目（按发布时间倒序） */
   async allItems() {
     const rows = await tx(STORE_ITEMS, 'readonly', (s) => wrap(s.getAll()));

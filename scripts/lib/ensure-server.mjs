@@ -52,6 +52,13 @@ export async function ensureServer({ port = 5178, timeoutMs = 30000, quiet = fal
     detached: true,
     stdio: 'ignore',
     windowsHide: true,
+    // 关掉服务自带的定时抓取（BN_CRON 为空即不注册 node-cron）。
+    //
+    // 为什么：服务默认每 30 分钟自动抓一轮，而本机还有每小时的 Windows 计划任务
+    // （BetterNews-Scrape）在抓同一批站点——两个抓取器互相重叠，既白费请求、
+    // 又给学校站点加压，而且测试进程会凭空产生「界面一直在抓取」的现象。
+    // 测试用的服务只负责读数据，抓取交给计划任务。
+    env: { ...process.env, BN_CRON: '' },
   });
   child.unref();
 

@@ -875,6 +875,13 @@ async function updateSubtitle() {
       : `正在抓取最新通知${detail}，首次约需 1-2 分钟`;
     $('#btnFetch').classList.add('spin');
     $('#btnFetchDisabled').classList.add('spin');
+  } else if (st?.background) {
+    // 后台补正文：界面完全可用，不该让用户以为「还在抓取」而干等。
+    // 阶段一（列表）早已结束、内容已全部入库，这一步只是补每条的正文，
+    // 用于卡片摘要与截止提醒，能不能补到不影响浏览。
+    $('#brandSub').textContent = `后台补齐正文…（可正常浏览，已有 ${ITEMS.length} 条）`;
+    $('#btnFetch').classList.remove('spin');
+    $('#btnFetchDisabled').classList.remove('spin');
   } else if (data.isApi) {
     $('#btnFetch').classList.remove('spin');
   }
@@ -882,7 +889,7 @@ async function updateSubtitle() {
   if (data.isApi) {
     if (mode) mode.textContent = '本机数据';
     const unread = ITEMS.filter((i) => !stateStore.isRead(i)).length;
-    if (!st?.fetching) {
+    if (!st?.fetching && !st?.background) {
       $('#brandSub').textContent = st?.lastRun
         ? `上次抓取 ${relTime(st.lastRun)} · 库内 ${ITEMS.length} 条 · 未读 ${unread}`
         : `库内 ${ITEMS.length} 条 · 未读 ${unread}`;

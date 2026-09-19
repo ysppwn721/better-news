@@ -11,18 +11,29 @@
 ## 当前部署形态
 
 ```
-GitHub Actions（每天 6 次定时抓取）
-        │  抓取 → 导出静态 JSON 快照 → 提交到仓库
-        ▼
-GitHub Pages（托管 public/ 目录）──► 手机 / 电脑浏览器
+本机 Windows 计划任务（每小时）
+   抓取 49 个信源 → 导出静态 JSON 快照 → git push
+                                          │
+                                          ▼
+                        GitHub Pages（托管 public/）──► 手机 / 电脑浏览器
 ```
 
 | 组件 | 位置 | 说明 |
 |---|---|---|
+| 抓取 | **本机计划任务** | 每小时运行，见下方「为什么抓取必须在本地」 |
 | 前端 + 数据快照 | GitHub Pages | 纯静态，无需服务器，HTTPS 自动签发 |
-| 定时抓取 | GitHub Actions `fetch.yml` | 每天 6 次，结果自动提交并触发重新发布 |
 | 发布站点 | GitHub Actions `pages.yml` | `main` 有推送即重新发布 |
 | 后台推送 | Cloudflare Worker（可选） | 见「开启手机后台推送」 |
+
+### 为什么抓取必须在本地跑（实测结论）
+
+最初把抓取放在 GitHub Actions，结果 **49 个信源全部 `fetch failed`**。
+排查确认：Actions 构建机位于美国（eastus2），**无法访问中北大学各站点**；
+学校站点只在中国大陆网络下可达（本机直连 8 秒，Cloudflare 边缘 21 秒，GitHub 完全不通）。
+
+因此抓取改由本机计划任务完成，GitHub 只承担「托管静态页面」的职责。
+代价：**需要这台电脑开着**才能更新数据；关机的时段数据会停在最后一次抓取。
+
 
 ---
 
@@ -105,12 +116,23 @@ npm run fetch:all  # 抓取校级 + 学院
 
 ### 方案 A：GitHub Pages（当前使用，无需额外账号）
 
-仓库已配置好，推送到 `main` 即自动发布：
+**抓取与发布**：注册一次计划任务，之后每小时自动更新。
 
-- `.github/workflows/pages.yml` —— 把 `public/` 发布到 Pages
-- `.github/workflows/fetch.yml` —— 定时抓取并提交快照，提交后触发上面的发布
+```powershell
+# 注册计划任务（每小时抓取并发布）
+powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1 -Register
 
-首次启用 Pages（仓库 Settings → Pages → Source 选 **GitHub Actions**，或执行）：
+# 立即跑一次（不等下一小时）
+powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1
+
+# 查看 / 取消
+Get-ScheduledTask -TaskName 'BetterNews-Scrape'
+powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1 -Unregister
+```
+
+运行日志写在 `data/logs/scrape-YYYYMMDD.log`。
+
+**首次启用 Pages**（仓库 Settings → Pages → Source 选 **GitHub Actions**，或）：
 
 ```bash
 node scripts/enable-pages.mjs <你的用户名>/better-news
@@ -136,7 +158,7 @@ node scripts/deploy-cloud.mjs    # 一键部署（幂等，可重复执行）
 | Build command | （留空） |
 | Build output directory | `public` |
 
-两种方案可同时存在，互不影响。
+两种方案可同时存在，互不影响（都读取同一份 `public/` 快照）。
 
 
 ---

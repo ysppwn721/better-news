@@ -43,10 +43,15 @@ function Invoke-Cmd {
     param([string]$Exe, [string[]]$CmdArgs)
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
+    # 显式指定 UTF-8：PowerShell 5.1 默认按系统 ANSI 代码页解码子进程输出，
+    # 会把 Node 输出的中文变成乱码写进日志。
+    $prevEnc = [Console]::OutputEncoding
     try {
+        [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
         $out = & $Exe @CmdArgs 2>&1
         return @{ Code = $LASTEXITCODE; Output = @($out) }
     } finally {
+        [Console]::OutputEncoding = $prevEnc
         $ErrorActionPreference = $prev
     }
 }

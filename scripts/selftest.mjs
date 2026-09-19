@@ -96,8 +96,16 @@ if (counts.total === 0) {
 } else {
   const noDate = store.db.prepare('SELECT COUNT(*) AS n FROM items WHERE published_at IS NULL').get().n;
   check('条目全部有发布日期', noDate / counts.total < 0.02, `缺日期 ${noDate}/${counts.total}`);
-  const longTitle = store.db.prepare('SELECT COUNT(*) AS n FROM items WHERE length(title) > 60').get().n;
-  check('无标题异常（>60字）', longTitle === 0, `${longTitle} 条`);
+  // 标题异常判定：不看长度（有些招聘/宣讲通知的标题本身含时间地点，60+ 字是正常的），
+  // 而是找「正文特征词」——它们出现在标题里说明抽取到了正文段落而非标题。
+  const badTitle = store.db.prepare(`
+    SELECT COUNT(*) AS n FROM items
+    WHERE length(title) > 80
+       OR title LIKE '%一审%' OR title LIKE '%责编%'
+       OR title LIKE '%现将%' OR title LIKE '%如有异议%'
+       OR title LIKE '%联系电话%' OR title LIKE '%名单如下%'
+  `).get().n;
+  check('无标题抽取异常（长度或正文特征词）', badTitle === 0, `${badTitle} 条`);
   const sysTitle = store.db.prepare("SELECT COUNT(*) AS n FROM items WHERE title LIKE '%系统提示%'").get().n;
   check('无「系统提示」错误标题', sysTitle === 0, `${sysTitle} 条`);
   const badUrl = store.db.prepare("SELECT COUNT(*) AS n FROM items WHERE url NOT LIKE 'http%'").get().n;

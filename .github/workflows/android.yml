@@ -113,8 +113,24 @@ jobs:
         run: |
           ls -la app/build/outputs/apk/release/
           APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          if [ -z "$APK" ]; then
+            echo "::error::未找到 APK 产物"
+            exit 1
+          fi
+          case "$APK" in
+            *unsigned*) echo "::error::产物是未签名的 APK（$APK），无法安装"; exit 1 ;;
+          esac
           echo "APK_PATH=$APK" >> "$GITHUB_ENV"
           echo "APK_SIZE=$(du -h "$APK" | cut -f1)" >> "$GITHUB_ENV"
+          echo "✓ 产物: $APK ($(du -h "$APK" | cut -f1))"
+
+      # 校验签名：Gradle 在签名配置缺失时会安静地产出未签名包，
+      # 装到手机上才失败。这一步把它挡在构建阶段。
+      - name: 校验 APK 签名
+        run: |
+          APK="$APK_PATH"
+          node scripts/verify-apk.mjs "$APK"
+          echo "✓ 签名校验通过"
 
       - name: 上传 APK 为构建产物
         uses: actions/upload-artifact@v4

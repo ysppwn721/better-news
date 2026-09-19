@@ -3,17 +3,19 @@ apply plugin: 'com.android.application'
 /*
   签名配置。
 
-  为什么要签名：
-    Android 不允许安装未签名的 APK。debug 签名能装，但 debug 证书有有效期限制，
-    且不同构建之间不通用；用固定的 release 签名可以让后续版本覆盖升级
-    （不换签名才能直接覆盖安装，不需要先卸载）。
+  为什么必须签名：Android 不允许安装未签名的 APK。
 
-  密钥来源（按优先级）：
-    1) CI 环境：由 GitHub Actions 在构建时生成临时密钥（见 .github/workflows/android.yml）
-    2) 本地环境：android/keystore/release.keystore（已在 .gitignore 中排除）
+  密钥位置：app/android/keystore/release.keystore（已在 .gitignore 中排除）
+  CI 在构建前用 keytool 生成一份；本地自行构建也照做即可。
+
+  踩过的两个坑（曾导致产出无法安装的 app-release-unsigned.apk）：
+    1) 在 signingConfigs {} 里用 if 条件注册签名配置，release 配置可能实际未创建，
+       Gradle 随后安静地产出未签名包，装到手机上才失败。
+       → 这里改为无条件注册，缺密钥时用 GradleException 显式报错。
+    2) `signingConfig signingConfigs.release` 这种省略赋值的写法在嵌套块中不可靠。
+       → 统一用显式赋值 `signingConfig = signingConfigs.release`。
 */
 def keystoreFile = file('../../keystore/release.keystore')
-def hasKeystore = keystoreFile.exists()
 
 android {
     namespace = "cn.edu.nuc.betternews"
@@ -32,23 +34,34 @@ android {
         }
     }
     signingConfigs {
-        if (hasKeystore) {
-            release {
-                storeFile keystoreFile
-                storePassword System.getenv('KEYSTORE_PASSWORD') ?: 'betternews'
-                keyAlias System.getenv('KEY_ALIAS') ?: 'betternews'
-                keyPassword System.getenv('KEY_PASSWORD') ?: 'betternews'
-            }
+        release {
+            storeFile keystoreFile
+            storePassword System.getenv('KEYSTORE_PASSWORD') ?: 'betternews'
+            keyAlias System.getenv('KEY_ALIAS') ?: 'betternews'
+            keyPassword System.getenv('KEY_PASSWORD') ?: 'betternews'
         }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (hasKeystore) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig = signingConfigs.release
         }
+    }
+}
+
+// 缺密钥时立刻中止，避免产出「看起来成功但装不上」的未签名 APK
+gradle.taskGraph.whenReady { graph ->
+    def buildingRelease = graph.allTasks.any { it.name.toLowerCase().contains('release') }
+    if (buildingRelease && !keystoreFile.exists()) {
+        throw new GradleException(
+            "缺少签名密钥: ${keystoreFile.absolutePath}\n" +
+            "在 app/android 目录执行以下命令生成：\n" +
+            "  keytool -genkeypair -v -keystore keystore/release.keystore " +
+            "-alias betternews -keyalg RSA -keysize 2048 -validity 10950 " +
+            "-storepass betternews -keypass betternews " +
+            "-dname \"CN=BetterNews, OU=Student, O=NUC, L=Taiyuan, ST=Shanxi, C=CN\""
+        )
     }
 }
 

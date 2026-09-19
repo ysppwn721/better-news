@@ -75,6 +75,23 @@ const state = {
 // 仅诊断用途，界面逻辑不依赖它。
 if (typeof window !== 'undefined') window.__bnState = state;
 
+/**
+ * 供自动化测试驱动详情抽屉。
+ *
+ * 为什么需要暴露：详情页是「抓不到正文」时观感最差的地方（用户会以为 App 坏了），
+ * 而它只能由点击卡片触发。把入口挂出来，测试脚本才能直接构造
+ * 「有摘要无正文 / 完全无正文 / 请求抛错」三种情况，验证兜底界面真的渲染出来，
+ * 而不是等到用户手机上才发现。
+ */
+if (typeof window !== 'undefined') {
+  window.__bn = {
+    openDetail: (item) => openDetail(item),
+    closeDetail: () => closeDetail(),
+    get state() { return state; },
+    get items() { return ITEMS; },
+  };
+}
+
 let INDEX = null;
 let ITEMS = [];
 
@@ -604,7 +621,29 @@ async function openDetail(it) {
     } else if (detail.bodyText) {
       content.textContent = detail.bodyText;
     } else {
-      content.textContent = it.excerpt || '（未抓取到正文，请点击右上角「查看原文」）';
+      // 没抓到正文：给出摘要 + 明确的「去看原文」出口。
+      //
+      // 为什么必须做成有样式的块而不是一行灰字：
+      // 手机上抓不到正文是常见情况（校园网限制、校外抓取被拦、瞬时超时），
+      // 而这里是 App 里最容易被当成「App 坏了 / 文章打不开」的地方——
+      // 用户看到的如果是「（未抓取到正文…）」这种系统口吻的括号文本，
+      // 只会以为功能失效。改成带按钮的提示，把去向讲清楚。
+      const box = el('div', 'nocontent-box');
+      box.append(el('h4', '', '📄 未抓取到正文'));
+      box.append(el('p', '', it.excerpt
+        ? '下面是从列表页取到的内容摘要。完整正文（含附件与报名表）请点「查看官网原文」。'
+        : '这条通知的正文没能抓取到，可能原因是学校站点瞬时超时，或该栏目限制校外访问。请点「查看官网原文」查看完整内容。'));
+      if (it.excerpt) {
+        const ex = el('div', 'nocontent-excerpt');
+        ex.textContent = it.excerpt;
+        box.append(ex);
+      }
+      const go = el('a', 'btn primary small', '查看官网原文 ↗');
+      go.href = it.url;
+      go.target = '_blank';
+      go.rel = 'noopener';
+      box.append(go);
+      content.append(box);
     }
 
     if (detail.attachments?.length) {
@@ -623,7 +662,9 @@ async function openDetail(it) {
   } catch (e) {
     content.textContent = '';
     const err = el('div', 'restricted-box');
-    err.append(el('p', '', `正文加载失败：${e.message}`));
+    err.append(el('h4', '', '⚠ 正文加载失败'));
+    err.append(el('p', '', `原因：${e.message}`));
+    err.append(el('p', '', '多为网络不通或学校站点限制校外访问。可点右上角「查看原文」直接打开官网页面。'));
     content.append(err);
   }
 

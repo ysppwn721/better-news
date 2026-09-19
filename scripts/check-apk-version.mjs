@@ -42,10 +42,13 @@ const appJs = extractAsset('assets/public/app.js');
 if (!appJs) { console.error('✗ 包内找不到 assets/public/app.js'); process.exit(1); }
 const indexHtml = extractAsset('assets/public/index.html') || '';
 const appStore = extractAsset('assets/public/app-store.mjs') || '';
+// 信源清单打进 shared.mjs（app-store 只做数据层，名字来自外部注入），
+// 因此「学院栏目是否扩充」必须查 shared.mjs，查 app-store 会永远找不到。
+const shared = extractAsset('assets/public/shared.mjs') || '';
 
 // 版本号：AndroidManifest.xml 是二进制 XML，字符串存在字符串池里，
 // 编码可能是 UTF-16LE 或 UTF-8。两种都找一遍，无需 aapt 即可确认包的版本。
-const versionName = process.env.BN_EXPECT_VERSION || '1.2';
+const versionName = process.env.BN_EXPECT_VERSION || '1.4';
 const encodings = {
   'UTF-16LE': Buffer.from([...versionName].flatMap((c) => [c.charCodeAt(0) & 0xff, c.charCodeAt(0) >> 8])),
   UTF8: Buffer.from(versionName, 'utf8'),
@@ -78,6 +81,13 @@ const checks = [
   ['分批入库后通知界面（onBatch）', /onBatch/, appStore],
   ['后台补正文单独标记（background）', /background:\s*background|runtime\.background/, appStore],
   ['界面区分「后台补正文」阶段', /st\?\.background/, appJs],
+  // v1.4：学院专栏抓全 + 详情兜底
+  ['学院栏目已扩充（团学动态）', /团学动态/, shared],
+  ['学院栏目已扩充（教育管理）', /教育管理/, shared],
+  ['学院栏目已扩充（学位管理）', /学位管理/, shared],
+  ['学院栏目已扩充（招生信息）', /招生信息/, shared],
+  ['详情「未抓取到正文」兜底块', /nocontent-box/, appJs],
+  ['兜底块提供原文按钮', /查看官网原文/, appJs],
 ];
 
 let stale = 0;

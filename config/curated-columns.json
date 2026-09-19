@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "人工精选栏目：自动发现（discover.mjs）够不着的、但学生真正需要的学院栏目。",
+    "",
+    "为什么需要这一层：自动发现只扫描学院首页的直链（深度 1），且每个学院只挑 8 个栏目、",
+    "优先选「近 3 个月有更新」的。于是『学生工作 / 研究生培养 / 招生信息』这些一级栏目",
+    "下面的二级栏目（团学动态、教育管理、学位管理、招生信息…）从来没进过信源——",
+    "用户反馈『我们学院的专栏压根没从学院官网抓』即指此。",
+    "",
+    "本文件是叠加层：与自动发现结果按 URL 去重合并，重新跑 discover 不会丢。",
+    "",
+    "maxPages 的含义是「最多翻几页」这一道安全上限，不是「一定翻这么多页」——",
+    "真正的停止条件是 collectListPages 的 sinceMonths（默认最近 6 个月），",
+    "某页有 ≥60% 的条目早于截止线就停。因此低产栏目翻一两页就自己停了，",
+    "只有通知公告这类高产栏目才会真的用满。"
+  ],
+  "col-cst": [
+    { "name": "团学动态", "url": "http://cst.nuc.edu.cn/xsgz/txdt.htm", "maxPages": 12 },
+    { "name": "学生动态", "url": "http://cst.nuc.edu.cn/xsgz/xsdt.htm", "maxPages": 12 },
+    { "name": "就业工作", "url": "http://cst.nuc.edu.cn/xsgz/jygz.htm", "maxPages": 6 },
+    { "name": "教育管理", "url": "http://cst.nuc.edu.cn/yjspy/jygl.htm", "maxPages": 12 },
+    { "name": "学位管理", "url": "http://cst.nuc.edu.cn/yjspy/xwgl.htm", "maxPages": 12 },
+    { "name": "培养方案", "url": "http://cst.nuc.edu.cn/yjspy/pyfa.htm", "maxPages": 6 },
+    { "name": "招生信息", "url": "http://cst.nuc.edu.cn/zsxx.htm", "maxPages": 12 },
+    { "name": "硕士生招生", "url": "http://cst.nuc.edu.cn/zsxx/ssszs.htm", "maxPages": 12 },
+    { "name": "博士生招生", "url": "http://cst.nuc.edu.cn/zsxx/bsszs.htm", "maxPages": 12 },
+    { "name": "科研动态", "url": "http://cst.nuc.edu.cn/kxyj/kydt.htm", "maxPages": 12 },
+    { "name": "工会工作", "url": "http://cst.nuc.edu.cn/dqgz/ghgz.htm", "maxPages": 6 }
+  ]
+}

@@ -95,7 +95,7 @@
     "categoryId": "college",
     "listUrl": "http://bdtywlxy.nuc.edu.cn/xtgz/gsgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -104,7 +104,7 @@
     "categoryId": "college",
     "listUrl": "http://bdtywlxy.nuc.edu.cn/zlxz/jx.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -113,7 +113,7 @@
     "categoryId": "college",
     "listUrl": "http://bdtywlxy.nuc.edu.cn/rcpy/jxgl.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -122,7 +122,7 @@
     "categoryId": "college",
     "listUrl": "http://3y.nuc.edu.cn/zsjy/bkszs.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -131,7 +131,7 @@
     "categoryId": "college",
     "listUrl": "http://3y.nuc.edu.cn/zsjy.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -140,7 +140,7 @@
     "categoryId": "college",
     "listUrl": "http://3y.nuc.edu.cn/zsjy/jyfw.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -149,7 +149,7 @@
     "categoryId": "college",
     "listUrl": "http://cxcy.nuc.edu.cn/jxgz/jxyjjcg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -158,7 +158,7 @@
     "categoryId": "college",
     "listUrl": "http://ece.nuc.edu.cn/xtgz/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -167,7 +167,7 @@
     "categoryId": "college",
     "listUrl": "http://ece.nuc.edu.cn/xkky/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -176,7 +176,7 @@
     "categoryId": "college",
     "listUrl": "http://ece.nuc.edu.cn/djsz/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -185,7 +185,7 @@
     "categoryId": "college",
     "listUrl": "http://ece.nuc.edu.cn/jxgz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -194,7 +194,7 @@
     "categoryId": "college",
     "listUrl": "http://ece.nuc.edu.cn/jxgz/jxdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -203,7 +203,7 @@
     "categoryId": "college",
     "listUrl": "http://ece.nuc.edu.cn/jxgz/bkspy.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -212,7 +212,7 @@
     "categoryId": "college",
     "listUrl": "http://ece.nuc.edu.cn/aqgl/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -221,7 +221,7 @@
     "categoryId": "college",
     "listUrl": "http://ece.nuc.edu.cn/jxgz/jwtz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -230,7 +230,7 @@
     "categoryId": "college",
     "listUrl": "http://hkyh.nuc.edu.cn/txgz/gsgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -239,7 +239,7 @@
     "categoryId": "college",
     "listUrl": "http://hkyh.nuc.edu.cn/index/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -248,7 +248,7 @@
     "categoryId": "college",
     "listUrl": "http://hkyh.nuc.edu.cn/jxgz/bkspy.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -257,7 +257,7 @@
     "categoryId": "college",
     "listUrl": "http://hkyh.nuc.edu.cn/jxgz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -266,7 +266,7 @@
     "categoryId": "college",
     "listUrl": "http://hkyh.nuc.edu.cn/index/xyxw.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -275,7 +275,7 @@
     "categoryId": "college",
     "listUrl": "http://hkyh.nuc.edu.cn/xsky/yjspy.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -284,7 +284,7 @@
     "categoryId": "college",
     "listUrl": "http://hkyh.nuc.edu.cn/zsjy.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -293,7 +293,7 @@
     "categoryId": "college",
     "listUrl": "http://hkyh.nuc.edu.cn/zsjy/jyzx.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -302,7 +302,7 @@
     "categoryId": "college",
     "listUrl": "http://hgxy.nuc.edu.cn/zlxz/jxbgs.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -311,7 +311,7 @@
     "categoryId": "college",
     "listUrl": "http://hgxy.nuc.edu.cn/zsjy/jygz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -320,7 +320,7 @@
     "categoryId": "college",
     "listUrl": "http://hgxy.nuc.edu.cn/djsz/djdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -329,7 +329,7 @@
     "categoryId": "college",
     "listUrl": "http://hjaq.nuc.edu.cn/rcpy1/bksjy/pyfa.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -338,7 +338,7 @@
     "categoryId": "college",
     "listUrl": "http://hjaq.nuc.edu.cn/ywzy1/xwzx/xwjj.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -347,7 +347,7 @@
     "categoryId": "college",
     "listUrl": "http://jdgc.nuc.edu.cn/jyzx/zpxx.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -356,7 +356,7 @@
     "categoryId": "college",
     "listUrl": "http://jdgc.nuc.edu.cn/xsgz/txgz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -365,7 +365,7 @@
     "categoryId": "college",
     "listUrl": "http://jdgc.nuc.edu.cn/jxgz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -374,7 +374,7 @@
     "categoryId": "college",
     "listUrl": "http://jdgc.nuc.edu.cn/jxgz/bksjx.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -383,7 +383,7 @@
     "categoryId": "college",
     "listUrl": "http://jxdl.nuc.edu.cn/index/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -392,7 +392,7 @@
     "categoryId": "college",
     "listUrl": "http://jxdl.nuc.edu.cn/bkspy/pyfa.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -401,7 +401,7 @@
     "categoryId": "college",
     "listUrl": "http://jxdl.nuc.edu.cn/index/xyxw.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -410,7 +410,7 @@
     "categoryId": "college",
     "listUrl": "http://jxdl.nuc.edu.cn/bkspy/jxdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -419,7 +419,7 @@
     "categoryId": "college",
     "listUrl": "http://jxdl.nuc.edu.cn/zsjy1/bkszs.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -428,7 +428,7 @@
     "categoryId": "college",
     "listUrl": "http://jxdl.nuc.edu.cn/xsgz/jyfw.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -437,7 +437,7 @@
     "categoryId": "college",
     "listUrl": "http://jxdl.nuc.edu.cn/zsjy1.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -446,7 +446,7 @@
     "categoryId": "college",
     "listUrl": "http://jxdl.nuc.edu.cn/zsjy1/zpxx.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -455,7 +455,7 @@
     "categoryId": "college",
     "listUrl": "http://cst.nuc.edu.cn/xwzx/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -464,7 +464,7 @@
     "categoryId": "college",
     "listUrl": "http://cst.nuc.edu.cn/bkspy/jxdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -473,7 +473,7 @@
     "categoryId": "college",
     "listUrl": "http://cst.nuc.edu.cn/dqgz/djdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -482,7 +482,7 @@
     "categoryId": "college",
     "listUrl": "http://cst.nuc.edu.cn/xzzq/jxk.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -491,7 +491,106 @@
     "categoryId": "college",
     "listUrl": "http://cst.nuc.edu.cn/xwzx/xyxw.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-5",
+    "name": "计算机科学与技术学院·团学动态",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/xsgz/txdt.htm",
+    "pageTemplate": null,
+    "maxPages": 8,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-6",
+    "name": "计算机科学与技术学院·学生动态",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/xsgz/xsdt.htm",
+    "pageTemplate": null,
+    "maxPages": 8,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-7",
+    "name": "计算机科学与技术学院·就业工作",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/xsgz/jygz.htm",
+    "pageTemplate": null,
+    "maxPages": 6,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-8",
+    "name": "计算机科学与技术学院·教育管理",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/yjspy/jygl.htm",
+    "pageTemplate": null,
+    "maxPages": 8,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-9",
+    "name": "计算机科学与技术学院·学位管理",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/yjspy/xwgl.htm",
+    "pageTemplate": null,
+    "maxPages": 8,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-10",
+    "name": "计算机科学与技术学院·培养方案",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/yjspy/pyfa.htm",
+    "pageTemplate": null,
+    "maxPages": 6,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-11",
+    "name": "计算机科学与技术学院·招生信息",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/zsxx.htm",
+    "pageTemplate": null,
+    "maxPages": 8,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-12",
+    "name": "计算机科学与技术学院·硕士生招生",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/zsxx/ssszs.htm",
+    "pageTemplate": null,
+    "maxPages": 8,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-13",
+    "name": "计算机科学与技术学院·博士生招生",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/zsxx/bsszs.htm",
+    "pageTemplate": null,
+    "maxPages": 8,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-14",
+    "name": "计算机科学与技术学院·科研动态",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/kxyj/kydt.htm",
+    "pageTemplate": null,
+    "maxPages": 8,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-15",
+    "name": "计算机科学与技术学院·工会工作",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/dqgz/ghgz.htm",
+    "pageTemplate": null,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -500,7 +599,7 @@
     "categoryId": "college",
     "listUrl": "http://jgy.nuc.edu.cn/index/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -509,7 +608,7 @@
     "categoryId": "college",
     "listUrl": "http://jgy.nuc.edu.cn/bkjx2.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -518,7 +617,7 @@
     "categoryId": "college",
     "listUrl": "http://jgy.nuc.edu.cn/bkjx2/jxdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -527,7 +626,7 @@
     "categoryId": "college",
     "listUrl": "http://jgy.nuc.edu.cn/zlxz/kyzl.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -536,7 +635,7 @@
     "categoryId": "college",
     "listUrl": "http://jgy.nuc.edu.cn/kyyxkjs.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -545,7 +644,7 @@
     "categoryId": "college",
     "listUrl": "http://jgy.nuc.edu.cn/xsgz2.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -554,7 +653,7 @@
     "categoryId": "college",
     "listUrl": "http://jgy.nuc.edu.cn/zlxz/jxzl.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -563,7 +662,7 @@
     "categoryId": "college",
     "listUrl": "http://jgy.nuc.edu.cn/index/xyxw.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -572,7 +671,7 @@
     "categoryId": "college",
     "listUrl": "http://mkszyxy.nuc.edu.cn/index/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -581,7 +680,7 @@
     "categoryId": "college",
     "listUrl": "http://mkszyxy.nuc.edu.cn/kyyxkjs.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -590,7 +689,7 @@
     "categoryId": "college",
     "listUrl": "http://mkszyxy.nuc.edu.cn/index/xyxw.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -599,7 +698,7 @@
     "categoryId": "college",
     "listUrl": "http://mkszyxy.nuc.edu.cn/szkjx.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -608,7 +707,7 @@
     "categoryId": "college",
     "listUrl": "http://mkszyxy.nuc.edu.cn/szkjx/jxtd.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -617,7 +716,7 @@
     "categoryId": "college",
     "listUrl": "http://mkszyxy.nuc.edu.cn/kyyxkjs/kydt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -626,7 +725,7 @@
     "categoryId": "college",
     "listUrl": "http://mkszyxy.nuc.edu.cn/dttd/djgz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -635,7 +734,7 @@
     "categoryId": "college",
     "listUrl": "http://mkszyxy.nuc.edu.cn/index/xsdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -644,7 +743,7 @@
     "categoryId": "college",
     "listUrl": "http://epe.nuc.edu.cn/xsgz/wjtz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -653,7 +752,7 @@
     "categoryId": "college",
     "listUrl": "http://epe.nuc.edu.cn/bksjy/jwdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -662,7 +761,7 @@
     "categoryId": "college",
     "listUrl": "http://epe.nuc.edu.cn/xsgz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -671,7 +770,7 @@
     "categoryId": "college",
     "listUrl": "http://epe.nuc.edu.cn/zlxz/kykzl.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -680,7 +779,7 @@
     "categoryId": "college",
     "listUrl": "http://epe.nuc.edu.cn/kxyj/kydt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -689,7 +788,7 @@
     "categoryId": "college",
     "listUrl": "http://shss.nuc.edu.cn/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -698,7 +797,7 @@
     "categoryId": "college",
     "listUrl": "http://shss.nuc.edu.cn/tzgg/jxk.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -707,7 +806,7 @@
     "categoryId": "college",
     "listUrl": "http://shss.nuc.edu.cn/xyxw.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -716,7 +815,7 @@
     "categoryId": "college",
     "listUrl": "http://ss.nuc.edu.cn/rcpy/yjspy.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -725,7 +824,7 @@
     "categoryId": "college",
     "listUrl": "http://ss.nuc.edu.cn/gzzd/jxglzd.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -734,7 +833,7 @@
     "categoryId": "college",
     "listUrl": "http://math.nuc.edu.cn/jyjx/jxdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -743,7 +842,7 @@
     "categoryId": "college",
     "listUrl": "http://math.nuc.edu.cn/jyjx.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -752,7 +851,7 @@
     "categoryId": "college",
     "listUrl": "http://math.nuc.edu.cn/kxyj/kydt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -761,7 +860,7 @@
     "categoryId": "college",
     "listUrl": "http://math.nuc.edu.cn/kxyj/xsbg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -770,7 +869,7 @@
     "categoryId": "college",
     "listUrl": "http://tyxy.nuc.edu.cn/xsgz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -779,7 +878,7 @@
     "categoryId": "college",
     "listUrl": "http://tyxy.nuc.edu.cn/xsgz/xsdj.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -788,7 +887,7 @@
     "categoryId": "college",
     "listUrl": "http://tyxy.nuc.edu.cn/zsjy/jydt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -797,7 +896,7 @@
     "categoryId": "college",
     "listUrl": "http://5y.nuc.edu.cn/index/tzgg.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -806,7 +905,7 @@
     "categoryId": "college",
     "listUrl": "http://5y.nuc.edu.cn/xsgz/sbgz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -815,7 +914,7 @@
     "categoryId": "college",
     "listUrl": "http://5y.nuc.edu.cn/index/jxzxt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -824,7 +923,7 @@
     "categoryId": "college",
     "listUrl": "http://5y.nuc.edu.cn/index/xyxw.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -833,7 +932,7 @@
     "categoryId": "college",
     "listUrl": "http://5y.nuc.edu.cn/zsjy/zpxx.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -842,7 +941,7 @@
     "categoryId": "college",
     "listUrl": "http://6y.nuc.edu.cn/zyhbg/sjtz.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -851,7 +950,7 @@
     "categoryId": "college",
     "listUrl": "http://art.nuc.edu.cn/rcpy/yjspy/pydt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -860,7 +959,7 @@
     "categoryId": "college",
     "listUrl": "http://art.nuc.edu.cn/dqgz/djdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -869,7 +968,7 @@
     "categoryId": "college",
     "listUrl": "http://art.nuc.edu.cn/kxyj/kydt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -878,7 +977,7 @@
     "categoryId": "college",
     "listUrl": "http://art.nuc.edu.cn/rcpy/bkspy/jxdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -887,7 +986,7 @@
     "categoryId": "college",
     "listUrl": "http://art.nuc.edu.cn/xsgz/xgdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -896,7 +995,7 @@
     "categoryId": "college",
     "listUrl": "http://art.nuc.edu.cn/zsjy/zjdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -905,7 +1004,7 @@
     "categoryId": "college",
     "listUrl": "http://art.nuc.edu.cn/dqgz/ghhd.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   },
   {
@@ -914,7 +1013,7 @@
     "categoryId": "college",
     "listUrl": "http://zgxy.nuc.edu.cn/lht/xwdt.htm",
     "pageTemplate": null,
-    "maxPages": 1,
+    "maxPages": 6,
     "detailLimit": 8
   }
 ]

@@ -82,7 +82,14 @@ export class Fetcher {
    * @param {{pages?: number, sinceMonths?: number, maxItems?: number, enrich?: boolean}} [opts]
    */
   async fetchSource(source, opts = {}) {
-    const maxPages = Math.min(opts.pages ?? 12, 40);
+    // 翻页上限的优先级：命令行 --pages > 信源自己的 maxPages > 全局默认 12。
+    //
+    // ⚠ 这里以前写的是 `opts.pages ?? 12`，即**信源的 maxPages 从来没生效过**：
+    //   registry/sources 里给每个信源配的 maxPages（主站 3、学工部 4、学院栏目 6…）
+    //   全部被这个 12 覆盖。结果是想控制某个栏目的抓取深度时改配置没有任何效果——
+    //   排查「学院专栏内容不全」时就被这条误导过一次。
+    // 现在把 per-source 配置真正接上；命令行显式给了 --pages 时仍以命令行为准。
+    const maxPages = Math.min(opts.pages ?? source.maxPages ?? 12, 40);
     const sinceMonths = opts.sinceMonths ?? 6;
     const maxItems = opts.maxItems ?? 300;
     const enrich = opts.enrich !== false;

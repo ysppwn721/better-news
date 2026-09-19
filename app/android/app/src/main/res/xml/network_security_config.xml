@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  网络安全配置：放行中北大学各站点的明文 HTTP。
+
+  为什么必须显式配置（这是一个真实故障，不是防御性编程）：
+    中北大学的 102 个信源里，96 个只有 http:// 可用（学校站点没有 HTTPS）。
+    Android 从 9（API 28）起，targetSdk ≥ 28 的应用「默认禁止明文流量」。
+    本应用 targetSdkVersion = 36，且工程里没有任何 cleartext 配置，
+    于是所有 http:// 请求在系统层被判为
+    「Cleartext HTTP traffic to xxx.nuc.edu.cn not permitted」——
+    抓取全部失败、正文全部抓不到，表现为「搜索什么都搜不到、文章打不开」。
+
+  为什么不是全局 android:usesCleartextTraffic="true"（那样更省事）：
+    全局放开等于允许连任何 http 站点，太宽。这里只对学校域名开放明文，
+    其余（默认 default 段）仍强制 HTTPS——既解决故障，又不扩大攻击面。
+
+  注：Capacitor 的 CapacitorHttp 走原生网络栈，
+      因此同样受这份系统策略约束；只改 WebView 的 allowMixedContent 不够。
+-->
+<network-security-config>
+    <!-- 学校所有站点：允许明文 HTTP -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">nuc.edu.cn</domain>
+    </domain-config>
+
+    <!-- 其余域名：强制 HTTPS，不放宽 -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

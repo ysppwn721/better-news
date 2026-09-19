@@ -26,13 +26,25 @@ const log = (...a) => console.log(...a);
 
 log('[1/4] 生成信源清单…');
 const { buildSources } = await import(`file://${resolve(ROOT, 'src/core/sources.mjs').replace(/\\/g, '/')}`);
+
+/**
+ * App 端的每信源翻页上限。
+ *
+ * 为什么 App 要比服务端抓得浅：Node 端每小时/每 3 小时跑一轮，可以把通知公告翻 12 页；
+ * 而 App 是「每次打开就自己抓一轮」，页面数与请求数直接换算成手机上的等待时间与流量。
+ * 学院栏目每页 10 条，8 页 = 80 条，配合「按发布时间截止 6 个月」的自动停止，
+ * 已经足够覆盖学生关心的窗口，同时把首轮抓取控制在可接受的长度内。
+ */
+const APP_MAX_PAGES = 8;
+const appCap = (s) => Math.min(s.maxPages ?? APP_MAX_PAGES, APP_MAX_PAGES);
+
 const sources = buildSources().map((s) => ({
   id: s.id,
   name: s.name,
   categoryId: s.categoryId,
   listUrl: s.listUrl,
   pageTemplate: s.pageTemplate || null,
-  maxPages: s.maxPages ?? 1,
+  maxPages: appCap(s),
   // App 端抓详情受流量与电量限制，每信源限制条数
   detailLimit: s.id.startsWith('col-') ? 8 : 15,
 }));

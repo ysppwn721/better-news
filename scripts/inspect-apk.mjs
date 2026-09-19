@@ -138,5 +138,40 @@ for (const [name, checks] of contentTargets) {
   }
 }
 
+// ---------------------------------------------------------------- 明文 HTTP 放行
+//
+// ⚠ 这一项曾经缺失，后果是「手机 App 搜索不到任何东西、文章打不开」：
+//   学校 102 个信源里 96 个只有 http://（站点没有 HTTPS），而 Android 9+ 对
+//   targetSdk ≥ 28 的应用默认禁止明文流量，于是所有请求在系统层被拦掉。
+//   build.gradle 用的是 Capacitor 模板（默认 targetSdk = compileSdk = 36），
+//   所以只要 assets 里的网络配置丢了，App 就会整体抓不到数据。
+//
+// 注意：release 的 AndroidManifest.xml 是 AXML 二进制格式，
+// 字符串以 UTF-16LE 存储，必须按 UTF-16LE 比对，用 UTF-8 搜不出来。
+console.log('\n=== 明文 HTTP 放行（Android 9+ 必需）===');
+{
+  const mfEntry = byName.get('AndroidManifest.xml');
+  const mf = mfEntry ? readEntry(buf, mfEntry) : null;
+  const hasRef = !!mf && mf.includes(Buffer.from('network_security_config', 'utf16le'));
+  if (!hasRef) missing++;
+  console.log(`  ${hasRef ? '✓' : '✗'} Manifest 引用 networkSecurityConfig`);
+
+  // 打包后的 res/xml 文件名会被混淆成 res/xx.xml，因此按内容找：文件里应含
+  // 域名与 cleartextTrafficPermitted 标记（AXML 同样是 UTF-16LE）。
+  const xmlEntries = entries.filter((e) => /^res\/.*\.xml$/.test(e.name));
+  let nscData = null;
+  for (const e of xmlEntries) {
+    const d = readEntry(buf, e);
+    if (d && d.includes(Buffer.from('nuc.edu.cn', 'utf16le'))) { nscData = d; break; }
+  }
+  const hasDomain = !!nscData;
+  if (!hasDomain) missing++;
+  console.log(`  ${hasDomain ? '✓' : '✗'} 网络安全配置含 nuc.edu.cn 域名放行`);
+
+  const hasPermit = !!nscData && nscData.includes(Buffer.from('cleartextTrafficPermitted', 'utf16le'));
+  if (!hasPermit) missing++;
+  console.log(`  ${hasPermit ? '✓' : '✗'} cleartextTrafficPermitted 已声明`);
+}
+
 console.log(`\n结论: ${missing === 0 ? '✓ 内容完整，可以发布' : `✗ 有 ${missing} 项缺失，不要发布`}`);
 process.exit(missing === 0 ? 0 : 1);

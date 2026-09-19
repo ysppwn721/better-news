@@ -291,6 +291,79 @@ a:hover { text-decoration: underline; }
 
 .load-more-wrap { display: flex; justify-content: center; padding: 18px 0; }
 
+/* ---------- 关注按钮（卡片主体上的核心动作） ---------- */
+.watch-btn {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 9px; border-radius: 13px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--panel);
+  color: var(--text-2); font-size: 11.5px; line-height: 1.5;
+  white-space: nowrap; transition: .15s;
+}
+.watch-btn:hover { border-color: var(--primary); color: var(--primary); }
+.watch-btn.on {
+  background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600;
+}
+.card.watched { box-shadow: inset 3px 0 0 var(--primary), var(--shadow); }
+
+/* ---------- 关注面板 ---------- */
+.kw-input-row { display: flex; gap: 8px; }
+.kw-input-row input {
+  flex: 1; min-width: 0; padding: 8px 11px; border-radius: 8px;
+  border: 1px solid var(--border-strong); background: var(--panel); outline: none;
+}
+.kw-input-row input:focus { border-color: var(--primary); }
+.kw-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.kw-chip {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 2px 4px 2px 10px; border-radius: 14px;
+  background: var(--primary-soft); color: var(--primary);
+  font-size: 12px; border: 1px solid transparent;
+}
+.kw-chip.off { background: var(--bg); color: var(--text-3); border-color: var(--border); }
+.kw-chip.off .kw-word { text-decoration: line-through; }
+.kw-word { cursor: pointer; }
+.kw-del {
+  border: none; background: none; color: inherit; cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 0 4px; opacity: .7;
+}
+.kw-del:hover { opacity: 1; }
+.count-pill {
+  display: inline-block; margin-left: 6px; padding: 0 7px;
+  border-radius: 10px; background: var(--bg); color: var(--text-2);
+  font-size: 11.5px; font-weight: 600;
+}
+.watch-tools { justify-content: flex-start; gap: 8px; }
+
+.watch-list { display: flex; flex-direction: column; gap: 7px; }
+.watch-group {
+  margin: 12px 0 2px; font-size: 11.5px; font-weight: 650;
+  color: var(--text-3); letter-spacing: .3px;
+}
+.watch-group:first-child { margin-top: 4px; }
+.watch-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--panel);
+}
+.watch-row.stale { opacity: .62; border-style: dashed; }
+.watch-main { flex: 1; min-width: 0; }
+.watch-title { font-size: 13.5px; font-weight: 600; line-height: 1.5; color: var(--text); }
+.watch-title:hover { color: var(--primary); }
+.watch-why { margin-top: 3px; font-size: 11.5px; color: var(--text-3); }
+.watch-dl { margin-top: 4px; font-size: 12px; font-weight: 600; }
+.watch-dl.urgent { color: var(--danger); }
+.watch-dl.soon { color: var(--warn); }
+.watch-dl.over { color: var(--text-3); }
+.watch-dl.none { color: var(--text-3); font-weight: 400; }
+.watch-acts { display: flex; gap: 2px; flex: none; }
+
+/* 底部导航上的小红点（关注清单非空） */
+.mnav-dot {
+  position: absolute; top: 7px; right: 50%; margin-right: -22px;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--danger);
+}
+
 /* ---------- 详情抽屉 ---------- */
 .drawer-mask {
   position: fixed; inset: 0; background: rgba(16,24,40,.32);
@@ -407,6 +480,19 @@ a:hover { text-decoration: underline; }
 }
 @keyframes toastIn { from { transform: translate(-50%, 10px); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
 
+/*
+  移动端把 toast 抬高到底部导航之上。
+  原来固定 bottom:26px，正好压在底部导航（高约 53px）上——
+  而「点关注后弹提示」「添加关键词后弹提示」都发生在用户正在看下方内容的时候，
+  提示会盖住刚操作的东西。App 里尤其明显（底部导航更高）。
+*/
+@media (max-width: 900px) {
+  .toast {
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    max-width: 92vw;
+  }
+}
+
 /* ---------- 移动端底部导航 ---------- */
 .mobile-nav { display: none; }
 
@@ -444,12 +530,15 @@ a:hover { text-decoration: underline; }
     否则「加载中只转图标」这条规则（.btn.spin .btn-icon）会失效。
   */
   .topbar-actions .btn { padding: 6px 9px; font-size: 15px; }
-  #btnNotify, #btnFetch, #btnFetchDisabled, #btnSettings { font-size: 0; gap: 0; }
+  #btnNotify, #btnFetch, #btnFetchDisabled, #btnSettings, #btnWatch { font-size: 0; gap: 0; }
   .topbar-actions .btn-icon { font-size: 16px; }
   #btnNotify::after { content: '🔔'; font-size: 16px; }
   #btnSettings::after { content: '⚙'; font-size: 16px; }
+  #btnWatch::after { content: '🔖'; font-size: 16px; }
   #btnDeadline { position: relative; }
   #deadlineBadge { position: absolute; top: -2px; right: -2px; }
+  #btnWatch { position: relative; }
+  #watchBadge { position: absolute; top: -2px; right: -2px; }
 
   .content {
     padding: 10px 12px calc(76px + env(safe-area-inset-bottom));
@@ -512,9 +601,28 @@ a:hover { text-decoration: underline; }
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
     padding: 8px 0 9px; border: none; background: none; cursor: pointer;
     font-size: 11px; color: var(--text-2);
+    position: relative;
   }
   .mnav-btn span { font-size: 18px; line-height: 1; }
   .mnav-btn:active { background: var(--bg); }
+
+  /* 关注按钮在手机上要够大（这是本版的核心动作，不能点不中） */
+  .watch-btn { padding: 5px 11px; font-size: 12px; min-height: 30px; }
+  .watch-row { padding: 9px 11px; }
+  .watch-title { font-size: 13px; }
+
+  /*
+    关注面板里的按钮也要够大。桌面端的 .btn.small 是 4px 9px（约 32×24），
+    在手机上点「清掉自动加入的」「全部清空」会频繁点不中或点到旁边那个。
+    统一撑到 ≥34px，并把两个工具按钮拉满整行。
+  */
+  .watch-tools { gap: 8px; }
+  .watch-tools .btn { flex: 1; min-height: 36px; justify-content: center; }
+  .settings-section .btn.small { min-height: 34px; }
+  .kw-input-row .btn { min-height: 38px; padding: 0 16px; }
+  .kw-chip { padding: 4px 4px 4px 12px; font-size: 13px; }
+  .kw-del { min-width: 30px; min-height: 30px; font-size: 16px; padding: 0; }
+  .watch-acts .icon-btn { min-width: 36px; min-height: 36px; font-size: 16px; }
 
   .dl-row { padding: 10px; gap: 9px; }
   .dl-days { width: 46px; font-size: 12px; }

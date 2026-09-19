@@ -11,6 +11,13 @@
  */
 import { data, stateStore, local } from './store.js';
 import { titleMatches } from './aliases.mjs';
+import {
+  keyOf as watchKeyOf, isWatched, toggleWatched, loadWatched, resolveWatchList,
+  clearAutoWatched, clearWatched, unwatch, watchMany,
+  loadKeywords, addKeyword, removeKeyword, setKeywordEnabled, matchedKeywords,
+  syncKeywordHits, loadPrefs, savePrefs, buildIcs, downloadIcs,
+  loadAlerted, saveAlerted,
+} from './watch.mjs';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -218,6 +225,7 @@ function applyFilters() {
   if (f.has('unread')) list = list.filter((i) => !stateStore.isRead(i));
   if (f.has('important')) list = list.filter((i) => i.important);
   if (f.has('starred')) list = list.filter((i) => stateStore.isStarred(i));
+  if (f.has('watched')) list = list.filter((i) => isWatched(i));
   if (f.has('college')) {
     const ids = state.prioritySourceIds.length ? state.prioritySourceIds : [state.prioritySourceId];
     list = list.filter((i) => ids.includes(i.sourceId));
@@ -399,8 +407,10 @@ function renderStats() {
   box.textContent = '';
   const unread = ITEMS.filter((i) => !stateStore.isRead(i)).length;
   const important = ITEMS.filter((i) => i.important).length;
+  const watched = ITEMS.filter((i) => isWatched(i)).length;
   const soon = (INDEX.deadlines || []).filter((d) => d.daysLeft >= 0).length;
   const chips = [['库内', ITEMS.length, ''], ['未读', unread, unread ? 'alert' : ''], ['重要', important, '']];
+  if (watched) chips.push(['关注', watched, '']);
   if (soon) chips.push(['即将截止', soon, 'alert']);
   for (const [label, val, cls] of chips) {
     const c = el('span', `chip ${cls}`.trim());
@@ -412,6 +422,7 @@ function renderStats() {
   const badge = $('#deadlineBadge');
   badge.textContent = String(soon);
   badge.classList.toggle('hidden', soon === 0);
+  renderWatchBadge();
 }
 
 // ============================================================
@@ -438,7 +449,7 @@ function renderActiveFilters() {
   }
   if (state.tag) add(`标签：${state.tag}`, () => { state.tag = null; });
   if (state.q) add(`搜索：${state.q}`, () => { state.q = ''; $('#searchInput').value = ''; });
-  const names = { unread: '未读', important: '重要', starred: '收藏', today: '今日', week: '近 7 天', deadline: '有截止时间' };
+  const names = { unread: '未读', important: '重要', starred: '收藏', today: '今日', week: '近 7 天', deadline: '有截止时间', watched: '已关注' };
   for (const f of state.filters) {
     if (f === 'college') continue;
     add(names[f] || f, () => state.filters.delete(f));
@@ -495,9 +506,30 @@ function cardEl(it) {
   }
   foot.append(el('span', 'spacer'));
 
+  /*
+    关注按钮：这是「提醒与我有关的事」的入口，因此放在卡片主体上（不是右下角小图标）。
+    右下角那三个 icon-btn 在手机上只有 21×17，而且语义是「次要操作」；
+    关注是这一版的核心动作，必须一眼看得到、手指点得中。
+    已关注时显示勾选态，再点即取消（也满足「无关的可以去掉」）。
+  */
+  const watched = isWatched(it);
+  const watchBtn = el('button', `watch-btn${watched ? ' on' : ''}`, watched ? '🔖 已关注' : '🔖 关注');
+  watchBtn.title = watched ? '从关注清单移除（不再提醒）' : '加入关注清单，之后只提醒这些';
+  watchBtn.onclick = (e) => {
+    e.stopPropagation();
+    const now = toggleWatched(it);
+    watchBtn.textContent = now ? '🔖 已关注' : '🔖 关注';
+    watchBtn.classList.toggle('on', now);
+    card.classList.toggle('watched', now);
+    renderWatchBadge();
+    if (!$('#watchPanel').classList.contains('hidden')) renderWatchPanel();
+    toast(now ? '已加入关注，可在「🔖 关注」里管理' : '已从关注清单移除');
+  };
+  foot.append(watchBtn);
+
   const actions = el('div', 'actions');
   const star = el('button', `icon-btn${starred ? ' on' : ''}`, starred ? '★' : '☆');
-  star.title = '收藏';
+  star.title = '收藏（仅本机标记，不参与提醒）';
   star.onclick = (e) => {
     e.stopPropagation();
     const now = !stateStore.isStarred(it);
@@ -688,6 +720,205 @@ function closeDetail() {
 }
 
 // ============================================================
+// 我的关注（关注清单 · 关键词关注 · 日程导出）
+// ============================================================
+
+/** 顶栏与底部导航的角标：关注条数 */
+function renderWatchBadge() {
+  const n = Object.keys(loadWatched()).length;
+  const badge = $('#watchBadge');
+  if (badge) {
+    badge.textContent = String(n);
+    badge.classList.toggle('hidden', n === 0);
+  }
+  const dot = $('#mnavWatchDot');
+  if (dot) dot.classList.toggle('hidden', n === 0);
+}
+
+/** 把条目列表渲染成关注清单的通用行（面板里与日程预览共用） */
+function watchRow(row, opts = {}) {
+  const { item, meta, deadline, daysLeft, stale, key } = row;
+  const box = el('div', `watch-row${stale ? ' stale' : ''}`);
+
+  const main = el('div', 'watch-main');
+  const title = el('div', 'watch-title', item?.title || meta.title || '(该通知已不在当前数据里)');
+  if (item) {
+    title.onclick = () => { $('#watchPanel').classList.add('hidden'); openDetail(item); };
+    title.style.cursor = 'pointer';
+  }
+  main.append(title);
+
+  // 为什么在这条清单里 —— 用户必须能一眼分辨「我手动加的」还是「关键词带进来的」
+  const why = [];
+  if (String(meta.reason || '').startsWith('kw:')) why.push(`关键词「${meta.reason.slice(3)}」`);
+  else why.push('手动关注');
+  if (item?.sourceName) why.push(item.sourceName);
+  if (item?.publishedAt) why.push(relTime(item.publishedAt));
+  main.append(el('div', 'watch-why', why.join(' · ')));
+
+  if (deadline) {
+    const cls = daysLeft < 0 ? 'over' : (daysLeft <= 2 ? 'urgent' : 'soon');
+    const txt = daysLeft < 0 ? '已截止' : (daysLeft === 0 ? '今天截止' : (daysLeft === 1 ? '明天截止' : `剩 ${daysLeft} 天`));
+    main.append(el('div', `watch-dl ${cls}`, `⏰ ${deadline} ${txt}`));
+  } else {
+    main.append(el('div', 'watch-dl none', '未识别到截止时间（日程里按发布时间提醒一次）'));
+  }
+  box.append(main);
+
+  const acts = el('div', 'watch-acts');
+  if (item) {
+    const b = el('button', 'icon-btn', '↗');
+    b.title = '打开官网原文';
+    b.onclick = (e) => { e.stopPropagation(); window.open(item.url, '_blank', 'noopener'); };
+    acts.append(b);
+  }
+  const del = el('button', 'icon-btn', '×');
+  del.title = '不再关注（从提醒里去掉）';
+  del.onclick = (e) => {
+    e.stopPropagation();
+    unwatch(key);
+    renderWatchBadge();
+    renderWatchPanel();
+    renderFeed();
+  };
+  acts.append(del);
+  box.append(acts);
+  return box;
+}
+
+function renderWatchPanel() {
+  // ---- 关键词列表 ----
+  const kwBox = $('#kwList');
+  if (kwBox) {
+    kwBox.textContent = '';
+    const kws = loadKeywords();
+    if (!kws.length) {
+      kwBox.append(el('span', 'hint', '还没有关键词。添加后，标题命中的通知会自动进入下面的关注清单。'));
+    }
+    for (const k of kws) {
+      const chip = el('span', `kw-chip${k.enabled ? '' : ' off'}`);
+      const label = el('span', 'kw-word', k.word);
+      label.title = k.enabled ? '点击暂停该关键词' : '点击恢复该关键词';
+      label.onclick = () => { setKeywordEnabled(k.word, !k.enabled); renderWatchPanel(); };
+      chip.append(label);
+      const x = el('button', 'kw-del', '×');
+      x.title = '删除关键词';
+      x.onclick = () => {
+        removeKeyword(k.word);
+        // 顺带把它带进清单的条目也清掉，避免留下「已经没这个关键词了」的残留
+        const map = loadWatched();
+        let changed = false;
+        for (const [key, v] of Object.entries(map)) {
+          if (v.reason === `kw:${k.word}`) { delete map[key]; changed = true; }
+        }
+        if (changed) local.set('watched', map);
+        renderWatchBadge();
+        renderWatchPanel();
+      };
+      chip.append(x);
+      kwBox.append(chip);
+    }
+  }
+
+  // ---- 关注清单 ----
+  const listBox = $('#watchList');
+  if (!listBox) return;
+  listBox.textContent = '';
+  const rows = resolveWatchList(ITEMS, deadlineByItem);
+
+  const countEl = $('#watchCount');
+  if (countEl) countEl.textContent = String(rows.length);
+
+  // 日程导出按钮的可用性提示
+  const icsNote = $('#icsNote');
+  const withDl = rows.filter((r) => r.deadline).length;
+  if (icsNote) {
+    icsNote.textContent = rows.length
+      ? `将导出 ${rows.length} 个日程（其中 ${withDl} 个带截止日期，其余按发布时间提醒一次）。`
+      : '关注清单是空的——先关注几条通知，再导出到手机日历。';
+  }
+  const expBtn = $('#btnExportIcs');
+  if (expBtn) expBtn.disabled = rows.length === 0;
+
+  if (!rows.length) {
+    listBox.append(el('div', 'hint', '还没有关注任何通知。在列表里点卡片上的「🔖 关注」，或在上方添加关键词。'));
+    return;
+  }
+
+  // 分组：未过期的截止项 → 其它
+  const soon = rows.filter((r) => r.daysLeft != null && r.daysLeft >= 0);
+  const rest = rows.filter((r) => !(r.daysLeft != null && r.daysLeft >= 0));
+
+  if (soon.length) {
+    listBox.append(el('div', 'watch-group', `⏰ 即将截止（${soon.length}）`));
+    for (const r of soon) listBox.append(watchRow(r));
+  }
+  if (rest.length) {
+    listBox.append(el('div', 'watch-group', `📌 其它关注（${rest.length}）`));
+    for (const r of rest) listBox.append(watchRow(r));
+  }
+  return rows;
+}
+
+function openWatch() {
+  fillWatchPrefs();
+  renderWatchPanel();
+  $('#watchPanel').classList.remove('hidden');
+}
+
+/** 把保存的日程提醒偏好回填到下拉框（面板每次打开时也会刷） */
+function fillWatchPrefs() {
+  const p = loadPrefs();
+  const ld = $('#setLeadDays');
+  const rh = $('#setReminderHour');
+  if (ld) ld.value = String(p.leadDays);
+  if (rh) rh.value = String(p.reminderHour);
+}
+
+/**
+ * 关键词命中新条目时提醒。
+ *
+ * 与原来「新通知就弹」的区别：这里只针对**关注清单**里的新条目，
+ * 因此不会因为别的部门发了个无关通知就打扰用户。
+ * 用 alerted 集合去重，避免每次轮询都把同一批再弹一遍。
+ *
+ * ⚠ 为什么除系统通知外还要弹页面内 toast：
+ *   Android WebView（App 内）**不支持 Notification API**，
+ *   在 App 里 `Notification.permission` 拿不到、弹不出任何东西。
+ *   而「关键词有更新就提醒我」主要就是在 App 里用（网页版你未必开着）。
+ *   所以这里以页面内提示为保底（App/网页都能显示），
+ *   系统通知作为锦上添花（支持时才有）。
+ */
+function notifyWatchedNew() {
+  const rows = resolveWatchList(ITEMS, deadlineByItem);
+  const alerted = loadAlerted();
+  const fresh = rows.filter((r) => r.item && !alerted.has(r.key)
+    && String(r.meta.reason || '').startsWith('kw:'));
+  if (!fresh.length) return 0;
+  for (const r of fresh) alerted.add(r.key);
+  saveAlerted(alerted);
+
+  const words = [...new Set(fresh.map((r) => String(r.meta.reason).slice(3)))];
+  const label = words.length ? `「${words.slice(0, 3).join('、')}」` : '';
+  const first = fresh[0].item;
+
+  // 保底：页面内提示（App 与网页都有效）
+  toast(fresh.length === 1
+    ? `🔖 关注的关键词有新通知：${first.title.slice(0, 26)}`
+    : `🔖 ${label}共有 ${fresh.length} 条新关注通知`, 5000);
+
+  // 增强：系统通知（浏览器支持时才有；App 的 WebView 里通常不支持）
+  try {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      notifyNew(fresh.map((r) => r.item).slice(0, 5));
+    }
+  } catch { /* 不支持就只留页面内提示 */ }
+
+  renderWatchBadge();
+  return fresh.length;
+}
+
+// ============================================================
 // 截止提醒面板
 // ============================================================
 
@@ -841,29 +1072,166 @@ function wireSettings() {
 }
 
 // ============================================================
-// 抓取（仅本地服务模式）
+// 抓取（仅 API / App 模式）
 // ============================================================
 
-async function triggerFetch() {
+/**
+ * 刷新按钮的转动状态只有一个来源：**服务端/本机真实的抓取状态**。
+ *
+ * 这是一个真实 bug 的修法。以前按钮的 spin 类由两处各自设置：
+ *   · 点击处理里 btn.classList.add('spin')
+ *   · updateSubtitle() 里「如果 st.fetching 就 add('spin')」
+ * 两处互相打架，且都只看「有没有在抓」，不看「用户点的那次有没有被接受」。
+ * 于是：进页面时首次抓取还在跑（手机上 1~2 分钟），用户点「刷新」→
+ * triggerFetch 抛「正在抓取中」→ 点击处理 remove('spin') 并弹错误提示，
+ * 但 2 秒后 updateSubtitle 又 add('spin') 回来 → **按钮一直转，还配一句
+ * 「正在抓取中」的报错**，看起来就是彻底卡死（用户反馈的「点了刷新后一直转」）。
+ *
+ * 现在统一：spin 类只在 syncFetchButton() 里根据真实状态设置；
+ * 点击只是「请求开始」，被拒绝时不再报错（那本来就不是错误，是已经在做了），
+ * 而是把当前进度显示出来，让用户明白「它确实在干活」。
+ */
+let fetchWatchTimer = null;
+
+function syncFetchButton(status) {
   const btn = $('#btnFetch');
-  btn.classList.add('spin');
+  const btnDisabled = $('#btnFetchDisabled');
+  const spinning = !!status?.fetching;
+  if (btn) btn.classList.toggle('spin', spinning);
+  if (btnDisabled) btnDisabled.classList.toggle('spin', spinning);
+}
+
+/** 抓取过程中的进度文案（让「按钮在转」有解释，而不是让人干等） */
+function fetchProgressText(st) {
+  if (!st?.fetching) return null;
+  const p = st.progress;
+  const detail = p && p.total ? `（${p.done}/${p.total}${p.source ? ` · ${p.source}` : ''}）` : '';
+  return ITEMS.length
+    ? `正在更新${detail} · 已有 ${ITEMS.length} 条`
+    : `正在抓取最新通知${detail}，首次约需 1-2 分钟`;
+}
+
+/**
+ * 观察一次抓取直到结束。
+ *
+ * 相比原来的实现有三点不同：
+ *   1) 不再依赖「抓取过程中拿到的 lastResult」——App 端后台补正文阶段结束时
+ *      lastResult 可能为 null，早期实现据此显示「抓取结束」，信息量为零；
+ *      改为对比「抓取前后的条目数」得出真正新增了多少。
+ *   2) 轮询间隔从 1.5s 放宽到 2s，并在页面隐藏时暂停——手机上抓取时
+ *      每秒一次的请求 + 重渲染会额外拖慢本来就吃力的首轮抓取。
+ *   3) 超时（10 分钟）后**明确解除按钮转动**并提示，而不是一直转下去。
+ */
+async function startFetch({ reloadWhenDone = false } = {}) {
+  const before = ITEMS.length;
+
   try {
     await data.triggerFetch();
-    toast('已开始抓取最新通知…');
-    const tick = setInterval(async () => {
-      const st = await data.fetchStatus();
-      if (!st.fetching) {
-        clearInterval(tick);
-        btn.classList.remove('spin');
-        toast(st.lastResult ? `抓取完成，新增 ${st.lastResult.inserted} 条` : '抓取结束');
-        location.reload();
-      }
-    }, 1500);
-    setTimeout(() => { clearInterval(tick); btn.classList.remove('spin'); }, 15 * 60 * 1000);
   } catch (e) {
-    btn.classList.remove('spin');
-    toast(e.message);
+    // 「已有任务在运行」不是错误，是幂等情况：把当前进度告诉用户就好
+    const st = await data.fetchStatus().catch(() => null);
+    if (st?.fetching) {
+      const txt = fetchProgressText(st);
+      toast(txt ? `${txt}…已在抓取中，稍候即可` : '已在抓取中，稍候即可');
+      watchFetch({ before, reloadWhenDone });
+      return;
+    }
+    toast(e.message || '触发抓取失败');
+    syncFetchButton(await data.fetchStatus().catch(() => null));
+    return;
   }
+
+  toast('已开始抓取最新通知…');
+  watchFetch({ before, reloadWhenDone });
+}
+
+function watchFetch({ before = 0, reloadWhenDone = false } = {}) {
+  clearInterval(fetchWatchTimer);
+  const startedAt = Date.now();
+  const MAX_MS = 10 * 60 * 1000;
+  // 状态查询连续失败计数：放在外层，否则每次 tick 都被重置，永远到不了阈值
+  let statusFails = 0;
+
+  const tick = async () => {
+    let st = null;
+    try {
+      st = await data.fetchStatus();
+    } catch {
+      // 状态查询失败不应让按钮永远卡住：连续失败就当作结束
+      if (++statusFails >= 5) {
+        clearInterval(fetchWatchTimer);
+        fetchWatchTimer = null;
+        syncFetchButton({ fetching: false });
+        toast('抓取状态查询失败，请下拉/重新打开页面确认结果');
+      }
+      return;
+    }
+    statusFails = 0;
+    syncFetchButton(st);
+
+    // 抓取中：把进度写进副标题，用户能看见进展
+    const txt = fetchProgressText(st);
+    if (txt) $('#brandSub').textContent = txt;
+    else if (st?.background) {
+      $('#brandSub').textContent = `后台补齐正文…（可正常浏览，已有 ${ITEMS.length} 条）`;
+    }
+
+    if (st?.fetching) {
+      if (Date.now() - startedAt > MAX_MS) {
+        clearInterval(fetchWatchTimer);
+        fetchWatchTimer = null;
+        syncFetchButton({ fetching: false });
+        toast('抓取时间超出预期，已停止等待。可稍后重新打开页面查看', 5000);
+      }
+      return;
+    }
+
+    // 结束了
+    clearInterval(fetchWatchTimer);
+    fetchWatchTimer = null;
+    syncFetchButton({ fetching: false });
+
+    // 重新取一次条目清单，好算出真实新增数（不依赖 lastResult：
+    // App 端后台补正文结束时 lastResult 可能为 null）
+    let after = ITEMS.length;
+    if (typeof data.loadItems === 'function') {
+      try {
+        await data.loadItems();
+        after = data.items?.length ?? ITEMS.length;
+      } catch { /* 取不到就沿用旧值 */ }
+    }
+    const added = Math.max(0, after - before);
+    toast(added > 0 ? `抓取完成，新增 ${added} 条` : `抓取完成，暂无新通知（库内 ${after} 条）`);
+
+    if (reloadWhenDone) {
+      // 本地服务（网页）模式：重新载入最干净，也顺带刷新统计
+      setTimeout(() => location.reload(), 700);
+    } else {
+      // App 模式：不刷新页面，直接让界面吃下新数据
+      await updateSubtitle();
+      render();
+    }
+  };
+
+  fetchWatchTimer = setInterval(tick, 2000);
+  tick();
+
+  // 页面进后台时暂停轮询（手机上尤其重要：抓取本身就吃网络）
+  if (document.__bnVisHook !== true) {
+    document.__bnVisHook = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && fetchWatchTimer) {
+        clearInterval(fetchWatchTimer);
+        fetchWatchTimer = null;
+        watchFetch({ before: ITEMS.length });
+      }
+    });
+  }
+}
+
+async function triggerFetch() {
+  // 网页版走本地服务：抓完重载页面；App 端靠 onChange 回调增量刷新
+  return startFetch({ reloadWhenDone: !!data.isApi && data.mode !== 'app' });
 }
 
 // ============================================================
@@ -898,6 +1266,7 @@ function render() {
   renderTags();
   renderSources();
   renderStats();
+  renderWatchBadge();
 }
 
 async function updateSubtitle() {
@@ -905,27 +1274,19 @@ async function updateSubtitle() {
   const mode = $('#modeIndicator');
 
   // 抓取进行中：显示进度，避免用户面对空白界面不知所措
-  // （App 首次启动要抓 102 个信源，约 1.5 分钟）
+  // （App 首次启动要抓 113 个信源，约 1.5 分钟）
+  //
+  // 注意：按钮的转动状态**只**由 syncFetchButton 统一设置，这里不再各自
+  // add/remove('spin')——两处同时管一个类，正是「点刷新后一直转」的成因。
   if (st?.fetching) {
-    const p = st.progress;
-    const detail = p && p.total
-      ? `（${p.done}/${p.total}${p.source ? ` · ${p.source}` : ''}）`
-      : '';
-    $('#brandSub').textContent = ITEMS.length
-      ? `正在更新${detail} · 已有 ${ITEMS.length} 条`
-      : `正在抓取最新通知${detail}，首次约需 1-2 分钟`;
-    $('#btnFetch').classList.add('spin');
-    $('#btnFetchDisabled').classList.add('spin');
+    $('#brandSub').textContent = fetchProgressText(st);
   } else if (st?.background) {
     // 后台补正文：界面完全可用，不该让用户以为「还在抓取」而干等。
     // 阶段一（列表）早已结束、内容已全部入库，这一步只是补每条的正文，
     // 用于卡片摘要与截止提醒，能不能补到不影响浏览。
     $('#brandSub').textContent = `后台补齐正文…（可正常浏览，已有 ${ITEMS.length} 条）`;
-    $('#btnFetch').classList.remove('spin');
-    $('#btnFetchDisabled').classList.remove('spin');
-  } else if (data.isApi) {
-    $('#btnFetch').classList.remove('spin');
   }
+  syncFetchButton(st);
 
   if (data.isApi) {
     if (mode) mode.textContent = '本机数据';
@@ -1127,6 +1488,82 @@ function bindEvents() {
   $('#btnSettings').onclick = () => { fillSettingsForm(); $('#settingsPanel').classList.remove('hidden'); };
   $('#btnSettingsClose').onclick = () => $('#settingsPanel').classList.add('hidden');
 
+  // ---------- 我的关注 ----------
+  $('#btnWatch').onclick = openWatch;
+  $('#btnWatchClose').onclick = () => $('#watchPanel').classList.add('hidden');
+
+  const addKw = () => {
+    const inp = $('#kwInput');
+    const w = inp.value.trim();
+    if (!w) return;
+    if (addKeyword(w)) {
+      inp.value = '';
+      // 立即在当前数据里跑一遍，让用户马上看到「命中了多少条」
+      const { added, hits } = syncKeywordHits(ITEMS);
+      renderWatchPanel();
+      renderWatchBadge();
+      renderFeed();
+      toast(added
+        ? `已关注「${w}」，命中 ${hits.length} 条，其中 ${added} 条已加入关注清单`
+        : `已关注「${w}」，当前 ${hits.length} 条命中，暂无新条目`);
+    } else {
+      toast(`「${w}」已经在关注里了`);
+    }
+  };
+  $('#btnKwAdd').onclick = addKw;
+  $('#kwInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addKw(); }
+  });
+
+  $$('#btnExportIcs').onclick = () => {
+    const rows = resolveWatchList(ITEMS, deadlineByItem);
+    if (!rows.length) { toast('关注清单是空的，先关注几条通知'); return; }
+    const text = downloadIcs(rows);
+    toast(`已生成日历文件（${rows.length} 个日程），用手机日历打开即可导入`, 5000);
+    return text;
+  };
+
+  $$('#btnCopyIcs').onclick = async () => {
+    const rows = resolveWatchList(ITEMS, deadlineByItem);
+    if (!rows.length) { toast('关注清单是空的'); return; }
+    const text = buildIcs(rows);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('日历内容已复制（可粘贴到日历 App 或保存为 .ics 文件）');
+    } catch {
+      toast('复制失败，请改用「导出到手机日历」');
+    }
+  };
+
+  $('#setLeadDays').onchange = (e) => {
+    savePrefs({ leadDays: Number(e.target.value) });
+    renderWatchPanel();
+    toast('已更新提前提醒天数');
+  };
+  $('#setReminderHour').onchange = (e) => {
+    savePrefs({ reminderHour: Number(e.target.value) });
+    renderWatchPanel();
+    toast('已更新提醒时间');
+  };
+  $('#btnClearAuto').onclick = () => {
+    const n = clearAutoWatched();
+    renderWatchBadge();
+    renderWatchPanel();
+    renderFeed();
+    toast(n ? `已移除 ${n} 条关键词自动加入的关注` : '没有关键词自动加入的关注项');
+  };
+  $('#btnClearAllWatch').onclick = () => {
+    const n = Object.keys(loadWatched()).length;
+    if (!n) { toast('关注清单已经是空的'); return; }
+    // 清空是破坏性操作，且清单是用户一条条攒的，必须确认
+    if (!window.confirm(`确定清空全部 ${n} 条关注吗？清空后提醒会回到「全部通知」。`)) return;
+    clearWatched();
+    renderWatchBadge();
+    renderWatchPanel();
+    renderFeed();
+    toast('关注清单已清空');
+  };
+
   $('#btnFetch').onclick = triggerFetch;
   // 静态模式：按钮改为「检查更新」——重新拉取快照（绕过本地缓存），而不是触发服务端抓取
   $('#btnFetchDisabled').onclick = async () => {
@@ -1223,6 +1660,7 @@ function bindEvents() {
       }
       closeSidebar();
       if (target === 'deadlines') { openDeadlines(); return; }
+      if (target === 'watch') { openWatch(); return; }
       if (target === 'search') { $('#searchInput').focus(); return; }
       if (target === 'fetch') {
         if (data.isApi) triggerFetch();
@@ -1252,8 +1690,20 @@ function startNotifyPolling() {
   const interval = (local.get('pollInterval', 300)) * 1000;
   notifyTimer = setInterval(() => {
     // API 模式下拉取最新条目比对；静态模式数据固定，无需轮询
-    if (data.isApi) refreshItems().then(() => checkNew()).catch(() => {});
-    else checkNew();
+    if (data.isApi) {
+      refreshItems()
+        .then(() => {
+          // 关键词语义：只要命中的是新条目就提醒（不必先看老的已读基线）
+          syncKeywordHits(ITEMS);
+          notifyWatchedNew();
+          checkNew();
+        })
+        .catch(() => {});
+    } else {
+      syncKeywordHits(ITEMS);
+      notifyWatchedNew();
+      checkNew();
+    }
   }, interval);
 }
 
@@ -1306,6 +1756,12 @@ async function init() {
     render();
     renderPushRow();
 
+    // 关注相关：先把已有关键词在当前数据上跑一遍（用户上次设的关键词，
+    // 可能在这次快照里才首次出现），再校准角标与面板
+    syncKeywordHits(ITEMS);
+    renderWatchBadge();
+    fillWatchPrefs();
+
     // App 模式下注册数据变化回调：
     // 首次启动时库是空的，界面先渲染 0 条，随后后台抓取完成——
     // 必须靠这个回调重新渲染，否则用户看到的永远是空 App（本项目踩过这个坑）。
@@ -1313,8 +1769,13 @@ async function init() {
       data.onChange = (items) => {
         ITEMS = items;
         buildDeadlineIndex();
+        // 新抓回来的数据里可能有命中关键词的条目：同步进关注清单并提醒
+        syncKeywordHits(ITEMS);
         render();
+        renderWatchBadge();
+        if (!$('#watchPanel').classList.contains('hidden')) renderWatchPanel();
         updateSubtitle();
+        notifyWatchedNew();
       };
     }
 

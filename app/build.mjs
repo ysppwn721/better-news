@@ -97,11 +97,25 @@ log(`      app-store.mjs ${(readFileSync(resolve(WWW, 'app-store.mjs')).length /
 
 log('[4/4] 复制网页前端…');
 const PUBLIC = resolve(ROOT, 'public');
-for (const f of ['style.css', 'sw.js', 'manifest.webmanifest', 'aliases.mjs']) {
+// watch.mjs 是「关注清单 / 关键词 / 日程导出」模块，app.js 直接 import 它，
+// 漏拷会让 App 白屏（模块 404）——所以这里的清单必须与 app.js 的 import 保持一致。
+// 下面加了一道校验：把 app.js 里所有相对 import 都检查一遍。
+for (const f of ['style.css', 'sw.js', 'manifest.webmanifest', 'aliases.mjs', 'watch.mjs']) {
   cpSync(resolve(PUBLIC, f), resolve(WWW, f));
 }
 for (const d of ['icons']) {
   if (existsSync(resolve(PUBLIC, d))) cpSync(resolve(PUBLIC, d), resolve(WWW, d), { recursive: true });
+}
+
+// 校验：app.js 里 import 的每个同目录模块都必须已经在 www/ 里，否则 App 会白屏
+const appSrc = readFileSync(resolve(PUBLIC, 'app.js'), 'utf8');
+const relImports = [...appSrc.matchAll(/from\s+'\.\/([\w.-]+)'/g)].map((m) => m[1])
+  .filter((f) => f !== 'store.js'); // store.js 在 App 端被替换成 app-store.mjs
+for (const f of relImports) {
+  if (!existsSync(resolve(WWW, f))) {
+    console.error(`✗ app.js 引用了 ./${f}，但它没有被复制到 www/ —— App 会白屏。请在 build.mjs 的复制清单里补上`);
+    process.exit(1);
+  }
 }
 
 // index.html：把入口脚本换成 App 版本，并加上移动端特有的 meta

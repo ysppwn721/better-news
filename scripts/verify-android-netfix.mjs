@@ -41,7 +41,7 @@ const t = Number((vars.match(/targetSdkVersion\s*=\s*(\d+)/) || [])[1]);
 check(`targetSdk=${t} ≥ 28（正是默认禁明文的门槛）`, t >= 28);
 
 console.log('\n=== 网页 / App 前端资源同步 ===');
-const pairs = [['app.js', true], ['style.css', false], ['index.html', false], ['aliases.mjs', false]];
+const pairs = [['app.js', true], ['style.css', false], ['index.html', false], ['aliases.mjs', false], ['watch.mjs', false]];
 for (const [f, isJs] of pairs) {
   const a = readFileSync(`public/${f}`, 'utf8');
   const b = readFileSync(`app/www/${f}`, 'utf8');
@@ -52,6 +52,13 @@ for (const [f, isJs] of pairs) {
     check(`app/www/${f} 与 public/${f} 一致`, a === b || f === 'index.html');
   }
 }
+
+// app.js 里 import 的同目录模块必须都在 www/ 里，否则 App 加载时 404 → 白屏
+const appSrc = readFileSync('public/app.js', 'utf8');
+const needed = [...appSrc.matchAll(/from\s+'\.\/([\w.-]+)'/g)].map((m) => m[1]).filter((f) => f !== 'store.js');
+const absent = needed.filter((f) => !existsSync(`app/www/${f}`));
+check(`app.js 依赖的 ${needed.length} 个模块都在 app/www/ 里`, absent.length === 0,
+  absent.length ? `缺失: ${absent.join(', ')}` : '');
 
 console.log(`\n结果: ${pass} 项通过, ${fail} 项失败`);
 process.exit(fail ? 1 : 0);

@@ -29,6 +29,7 @@
 
   <div class="topbar-actions">
     <div class="stat-chips" id="statChips"></div>
+    <button id="btnWatch" class="btn ghost" title="我的关注与提醒">🔖 关注 <span id="watchBadge" class="badge hidden">0</span></button>
     <button id="btnDeadline" class="btn ghost" title="查看即将截止的事项">⏰ <span id="deadlineBadge" class="badge hidden">0</span></button>
     <button id="btnNotify" class="btn ghost" title="开启浏览器提醒">🔔 提醒</button>
     <button id="btnFetch" class="btn primary" title="立即抓取最新通知"><span class="btn-icon">⟳</span> 刷新</button>
@@ -46,6 +47,7 @@
     <div class="side-block">
       <h3>快速筛选</h3>
       <div class="quick-filters">
+        <button class="qf" data-filter="watched">已关注</button>
         <button class="qf" data-filter="unread">未读</button>
         <button class="qf" data-filter="important">重要</button>
         <button class="qf" data-filter="starred">收藏</button>
@@ -96,6 +98,7 @@
   <button class="mnav-btn" data-target="all"><span>📋</span>全部</button>
   <button class="mnav-btn" data-target="menu"><span>☰</span>栏目</button>
   <button class="mnav-btn" data-target="search"><span>🔍</span>搜索</button>
+  <button class="mnav-btn" data-target="watch"><span>🔖</span>关注<span id="mnavWatchDot" class="mnav-dot hidden"></span></button>
   <button class="mnav-btn" data-target="deadlines"><span>⏰</span>截止</button>
 </nav>
 
@@ -111,6 +114,80 @@
   </div>
   <div class="drawer-body" id="drawerBody"></div>
 </aside>
+
+<!-- 我的关注与提醒 -->
+<div id="watchPanel" class="panel hidden">
+  <div class="panel-inner">
+    <div class="panel-head">
+      <h2>🔖 我的关注</h2>
+      <button id="btnWatchClose" class="btn ghost small">关闭</button>
+    </div>
+    <p class="panel-hint">
+      只把<strong>跟你有关</strong>的通知放进来，提醒就只围绕这些展开——不再被整库的新通知淹没。
+      点通知卡片上的「🔖 关注」即可加入。
+    </p>
+
+    <!-- 关键词关注 -->
+    <section class="settings-section">
+      <h3>关键词关注</h3>
+      <div class="kw-input-row">
+        <input type="text" id="kwInput" placeholder="如：选课、综测、推免、开题" autocomplete="off" enterkeyhint="done">
+        <button id="btnKwAdd" class="btn small primary">添加</button>
+      </div>
+      <p class="hint">
+        支持校园口语（搜「综测」也能命中「综合素质测评」）。标题命中即自动进入下方关注清单，
+        并在发现新通知时提醒你。
+      </p>
+      <div id="kwList" class="kw-list"></div>
+    </section>
+
+    <!-- 日程提醒 -->
+    <section class="settings-section">
+      <h3>手机日程提醒</h3>
+      <p class="hint" style="margin-top:0">
+        导出为 <code>.ics</code> 日历文件，用手机打开后导入系统日历。
+        之后由<strong>系统日历</strong>到点提醒——App 没打开、电脑关机也照样响。
+      </p>
+      <div class="row">
+        <span>提前几天提醒</span>
+        <select id="setLeadDays">
+          <option value="0">当天</option>
+          <option value="1">提前 1 天</option>
+          <option value="3">提前 3 天</option>
+          <option value="5">提前 5 天</option>
+          <option value="7">提前 7 天</option>
+        </select>
+      </div>
+      <div class="row">
+        <span>提醒时间</span>
+        <select id="setReminderHour">
+          <option value="8">早上 8 点</option>
+          <option value="9">早上 9 点</option>
+          <option value="12">中午 12 点</option>
+          <option value="20">晚上 8 点</option>
+        </select>
+      </div>
+      <div class="row">
+        <button id="btnExportIcs" class="btn primary small">📅 导出到手机日历</button>
+        <button id="btnCopyIcs" class="btn ghost small">复制内容</button>
+      </div>
+      <p class="hint" id="icsNote"></p>
+    </section>
+
+    <!-- 关注清单 -->
+    <section class="settings-section">
+      <h3>关注清单 <span id="watchCount" class="count-pill">0</span></h3>
+      <div class="row watch-tools">
+        <button id="btnClearAuto" class="btn ghost small">清掉自动加入的</button>
+        <button id="btnClearAllWatch" class="btn ghost small">全部清空</button>
+      </div>
+      <p class="hint" style="margin-top:0">
+        「自动加入」= 命中你关键词的那些。手动关注的那几条会一直保留。
+      </p>
+      <div id="watchList" class="watch-list"></div>
+    </section>
+  </div>
+</div>
 
 <!-- 截止提醒面板 -->
 <div id="deadlinePanel" class="panel hidden">

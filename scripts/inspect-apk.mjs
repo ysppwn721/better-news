@@ -115,6 +115,12 @@ const contentTargets = [
     ['抓取引擎 runScrape', 'runScrape'],
     ['IndexedDB 存储', 'indexedDB'],
   ]],
+  // app.js 直接 import './watch.mjs'：这个文件不在包里的话 App 会白屏（模块 404）
+  ['assets/public/watch.mjs', [
+    ['关注清单', 'loadWatched'],
+    ['关键词关注', 'addKeyword'],
+    ['日程导出 ICS', 'BEGIN:VCALENDAR'],
+  ]],
   ['assets/public/index.html', [
     ['页面标题', '校园信息汇总'],
     ['入口脚本', 'app.js'],

@@ -45,10 +45,12 @@ const appStore = extractAsset('assets/public/app-store.mjs') || '';
 // 信源清单打进 shared.mjs（app-store 只做数据层，名字来自外部注入），
 // 因此「学院栏目是否扩充」必须查 shared.mjs，查 app-store 会永远找不到。
 const shared = extractAsset('assets/public/shared.mjs') || '';
+// 关注/关键词/日程导出模块单独一个文件，app.js 用 import 引它
+const watchSrc = extractAsset('assets/public/watch.mjs') || '';
 
 // 版本号：AndroidManifest.xml 是二进制 XML，字符串存在字符串池里，
 // 编码可能是 UTF-16LE 或 UTF-8。两种都找一遍，无需 aapt 即可确认包的版本。
-const versionName = process.env.BN_EXPECT_VERSION || '1.4';
+const versionName = process.env.BN_EXPECT_VERSION || '1.5';
 const encodings = {
   'UTF-16LE': Buffer.from([...versionName].flatMap((c) => [c.charCodeAt(0) & 0xff, c.charCodeAt(0) >> 8])),
   UTF8: Buffer.from(versionName, 'utf8'),
@@ -94,14 +96,35 @@ const checks = [
   ['学院栏目 id 至少到 col-cst-15', /col-cst-15/, shared],
   ['详情「未抓取到正文」兜底块', /nocontent-box/, appJs],
   ['兜底块提供原文按钮', /查看官网原文|\\u67E5\\u770B\\u5B98\\u7F51\\u539F\\u6587/, appJs],
+  // v1.5：我的关注 / 关键词提醒 / 日程导出 / 刷新按钮不再一直转
+  ['关注模块已随包发布（watch.mjs）', /loadWatched|resolveWatchList/, watchSrc],
+  ['关注清单 localStorage 键', /['"]watched['"]/, watchSrc],
+  ['关键词关注', /watchKeywords|addKeyword/, watchSrc],
+  ['ICS 日程导出', /BEGIN:VCALENDAR/, watchSrc],
+  ['日历待办闹钟（VALARM）', /BEGIN:VALARM/, watchSrc],
+  ['卡片上的关注按钮', /watch-btn/, appJs],
+  ['关注面板入口（底栏 watch）', /data-target="watch"|btnWatch/, indexHtml],
+  ['刷新按钮状态单一来源（修 bug）', /syncFetchButton/, appJs],
+  ['不再把「已在抓取中」当错误弹提示', /已在抓取中，稍候即可/, appJs],
+  // toggle('spin') 只允许出现在 syncFetchButton 一处——两处各管一摊正是
+  // 「点刷新后一直转」的成因。用 expectCount 精确断言出现次数。
+  ['spin 类只在一处设置（防回归）', /classList\.toggle\('spin'/g, appJs, false, 1],
 ];
 
 let stale = 0;
-for (const [label, re, target, shouldBeAbsent] of checks) {
-  const present = re.test(target);
-  const ok = shouldBeAbsent ? !present : present;
+for (const [label, re, target, shouldBeAbsent, expectCount] of checks) {
+  const all = target.match(re) || [];
+  let ok;
+  let extra = '';
+  if (expectCount != null) {
+    ok = all.length === expectCount;
+    extra = `（出现 ${all.length} 次，应为 ${expectCount} 次）`;
+  } else {
+    const present = all.length > 0;
+    ok = shouldBeAbsent ? !present : present;
+  }
   if (!ok) stale++;
-  console.log(`  ${ok ? '✓' : '✗'} ${label}${shouldBeAbsent ? '（应为不存在）' : ''}`);
+  console.log(`  ${ok ? '✓' : '✗'} ${label}${extra}${shouldBeAbsent ? '（应为不存在）' : ''}`);
 }
 
 // 提取 search 函数片段，人工核对

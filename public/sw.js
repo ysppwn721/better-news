@@ -20,6 +20,8 @@ const SHELL_ASSETS = [
   './style.css',
   './app.js',
   './store.js',
+  './watch.mjs',
+  './aliases.mjs',
   './manifest.webmanifest',
 ];
 

@@ -34,6 +34,26 @@ async function pooled(items, limit, worker) {
   return results;
 }
 
+/**
+ * 按「同站点 + 同标题」去重。
+ *
+ * 学院常把同一条通知同时发在多个栏目下，产生多个 URL；
+ * 以 URL 为唯一键无法识别，学生就会看到同一条通知出现两次。
+ * 保留发布时间较新的一份；不同部门的同名通知不合并。
+ */
+function dedupeByTitle(items) {
+  const best = new Map();
+  for (const it of items) {
+    let host = '';
+    try { host = new URL(it.url).hostname.replace(/^www\./, ''); } catch { host = it.url; }
+    const key = `${host}::${(it.title || '').replace(/\s+/g, '')}`;
+    const prev = best.get(key);
+    if (!prev || String(it.date || '') > String(prev.date || '')) best.set(key, it);
+  }
+  const keep = new Set([...best.values()].map((x) => x.url));
+  return items.filter((x) => keep.has(x.url));
+}
+
 const isDesktop = () => typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform;
 
 /**
@@ -182,7 +202,7 @@ export async function runScrape({ sources, concurrency = 6, onProgress, fetchDet
     });
   }
 
-  const res = await db.upsertItems(toSave.map(({ _isNew, ...rest }) => rest));
+  const res = await db.upsertItems(dedupeByTitle(toSave).map(({ _isNew, ...rest }) => rest));
   updated = Math.max(0, res.updated);
 
   const elapsed = Math.round((Date.now() - started) / 1000);

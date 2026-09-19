@@ -148,6 +148,8 @@ export async function startServer({ store, port = 5178, host = '127.0.0.1' } = {
         important: it.important,
         restricted: it.restricted,
         excerpt: (it.bodyText || '').slice(0, 300).replace(/\s+/g, ' ').trim(),
+        // 正文片段供本地搜索：只搜标题+摘要会漏掉用户的常用说法
+        searchText: (it.bodyText || '').slice(0, 2000).replace(/\s+/g, ' ').trim(),
       })),
     });
   });

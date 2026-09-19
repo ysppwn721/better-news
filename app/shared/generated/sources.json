@@ -100,6 +100,15 @@
   },
   {
     "id": "col-bdtywlxy-1",
+    "name": "半导体与物理学院·教学",
+    "categoryId": "college",
+    "listUrl": "http://bdtywlxy.nuc.edu.cn/zlxz/jx.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-bdtywlxy-2",
     "name": "半导体与物理学院·教学管理",
     "categoryId": "college",
     "listUrl": "http://bdtywlxy.nuc.edu.cn/rcpy/jxgl.htm",
@@ -111,16 +120,25 @@
     "id": "col-cly",
     "name": "材料科学与工程学院",
     "categoryId": "college",
-    "listUrl": "http://3y.nuc.edu.cn/xsgz.htm",
+    "listUrl": "http://3y.nuc.edu.cn/zsjy/bkszs.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8
   },
   {
     "id": "col-cly-1",
-    "name": "材料科学与工程学院·本科生招生",
+    "name": "材料科学与工程学院·招生就业",
     "categoryId": "college",
-    "listUrl": "http://3y.nuc.edu.cn/zsjy/bkszs.htm",
+    "listUrl": "http://3y.nuc.edu.cn/zsjy.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cly-2",
+    "name": "材料科学与工程学院·就业服务",
+    "categoryId": "college",
+    "listUrl": "http://3y.nuc.edu.cn/zsjy/jyfw.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8
@@ -130,15 +148,6 @@
     "name": "创新创业学院",
     "categoryId": "college",
     "listUrl": "http://cxcy.nuc.edu.cn/jxgz/jxyjjcg.htm",
-    "pageTemplate": null,
-    "maxPages": 1,
-    "detailLimit": 8
-  },
-  {
-    "id": "col-cxcy-1",
-    "name": "创新创业学院·教学管理文件",
-    "categoryId": "college",
-    "listUrl": "http://cxcy.nuc.edu.cn/jxgz/jxglwj.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8
@@ -162,6 +171,42 @@
     "detailLimit": 8
   },
   {
+    "id": "col-ece-2",
+    "name": "电气与控制工程学院·教学动态",
+    "categoryId": "college",
+    "listUrl": "http://ece.nuc.edu.cn/jxgz/jxdt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-ece-3",
+    "name": "电气与控制工程学院·本科生培养",
+    "categoryId": "college",
+    "listUrl": "http://ece.nuc.edu.cn/jxgz/bkspy.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-ece-4",
+    "name": "电气与控制工程学院·教学研究",
+    "categoryId": "college",
+    "listUrl": "http://ece.nuc.edu.cn/jxgz/jxyj.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-ece-5",
+    "name": "电气与控制工程学院·教学质量监控",
+    "categoryId": "college",
+    "listUrl": "http://ece.nuc.edu.cn/jxgz/jxzljk.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
     "id": "col-hkyh",
     "name": "航空宇航学院",
     "categoryId": "college",
@@ -180,6 +225,42 @@
     "detailLimit": 8
   },
   {
+    "id": "col-hkyh-2",
+    "name": "航空宇航学院·本科生培养",
+    "categoryId": "college",
+    "listUrl": "http://hkyh.nuc.edu.cn/jxgz/bkspy.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-hkyh-3",
+    "name": "航空宇航学院·教学工作",
+    "categoryId": "college",
+    "listUrl": "http://hkyh.nuc.edu.cn/jxgz.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-hkyh-4",
+    "name": "航空宇航学院·学院新闻",
+    "categoryId": "college",
+    "listUrl": "http://hkyh.nuc.edu.cn/index/xyxw.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-hkyh-5",
+    "name": "航空宇航学院·研究生培养",
+    "categoryId": "college",
+    "listUrl": "http://hkyh.nuc.edu.cn/xsky/yjspy.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
     "id": "col-hgxy",
     "name": "化学与化工学院",
     "categoryId": "college",
@@ -190,6 +271,15 @@
   },
   {
     "id": "col-hgxy-1",
+    "name": "化学与化工学院·就业工作",
+    "categoryId": "college",
+    "listUrl": "http://hgxy.nuc.edu.cn/zsjy/jygz.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-hgxy-2",
     "name": "化学与化工学院·党建思政",
     "categoryId": "college",
     "listUrl": "http://hgxy.nuc.edu.cn/djsz/djdt.htm",
@@ -207,8 +297,26 @@
     "detailLimit": 8
   },
   {
+    "id": "col-hjaq-1",
+    "name": "环境与安全工程学院·新闻",
+    "categoryId": "college",
+    "listUrl": "http://hjaq.nuc.edu.cn/ywzy1/xwzx/xwjj.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
     "id": "col-jdgc",
     "name": "机电工程学院",
+    "categoryId": "college",
+    "listUrl": "http://jdgc.nuc.edu.cn/jyzx/zpxx.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-jdgc-1",
+    "name": "机电工程学院·学生工作",
     "categoryId": "college",
     "listUrl": "http://jdgc.nuc.edu.cn/xsgz/txgz.htm",
     "pageTemplate": null,
@@ -216,10 +324,19 @@
     "detailLimit": 8
   },
   {
-    "id": "col-jdgc-1",
-    "name": "机电工程学院·就业资讯",
+    "id": "col-jdgc-2",
+    "name": "机电工程学院·教学工作",
     "categoryId": "college",
-    "listUrl": "http://jdgc.nuc.edu.cn/jyzx/zpxx.htm",
+    "listUrl": "http://jdgc.nuc.edu.cn/jxgz.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-jdgc-3",
+    "name": "机电工程学院·本科生教学",
+    "categoryId": "college",
+    "listUrl": "http://jdgc.nuc.edu.cn/jxgz/bksjx.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8
@@ -235,9 +352,45 @@
   },
   {
     "id": "col-jxdl-1",
-    "name": "机械工程学院·本科生培养",
+    "name": "机械工程学院·学院新闻",
     "categoryId": "college",
-    "listUrl": "http://jxdl.nuc.edu.cn/bkspy/pyfa.htm",
+    "listUrl": "http://jxdl.nuc.edu.cn/index/xyxw.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-jxdl-2",
+    "name": "机械工程学院·教学动态",
+    "categoryId": "college",
+    "listUrl": "http://jxdl.nuc.edu.cn/bkspy/jxdt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-jxdl-3",
+    "name": "机械工程学院·本科生招生",
+    "categoryId": "college",
+    "listUrl": "http://jxdl.nuc.edu.cn/zsjy1/bkszs.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-jxdl-4",
+    "name": "机械工程学院·学生工作",
+    "categoryId": "college",
+    "listUrl": "http://jxdl.nuc.edu.cn/xsgz/jyfw.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-jxdl-5",
+    "name": "机械工程学院·招生就业",
+    "categoryId": "college",
+    "listUrl": "http://jxdl.nuc.edu.cn/zsjy1.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8
@@ -261,6 +414,33 @@
     "detailLimit": 8
   },
   {
+    "id": "col-cst-2",
+    "name": "计算机科学与技术学院·党建动态",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/dqgz/djdt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-3",
+    "name": "计算机科学与技术学院·教学科",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/xzzq/jxk.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-cst-4",
+    "name": "计算机科学与技术学院·学院新闻",
+    "categoryId": "college",
+    "listUrl": "http://cst.nuc.edu.cn/xwzx/xyxw.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
     "id": "col-jgy",
     "name": "经济与管理学院",
     "categoryId": "college",
@@ -279,6 +459,42 @@
     "detailLimit": 8
   },
   {
+    "id": "col-jgy-2",
+    "name": "经济与管理学院·教学动态",
+    "categoryId": "college",
+    "listUrl": "http://jgy.nuc.edu.cn/bkjx2/jxdt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-jgy-3",
+    "name": "经济与管理学院·科研资料",
+    "categoryId": "college",
+    "listUrl": "http://jgy.nuc.edu.cn/zlxz/kyzl.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-jgy-4",
+    "name": "经济与管理学院·科研与学科建",
+    "categoryId": "college",
+    "listUrl": "http://jgy.nuc.edu.cn/kyyxkjs.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-jgy-5",
+    "name": "经济与管理学院·学生工作",
+    "categoryId": "college",
+    "listUrl": "http://jgy.nuc.edu.cn/xsgz2.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
     "id": "col-mkszyxy",
     "name": "马克思主义学院",
     "categoryId": "college",
@@ -289,6 +505,24 @@
   },
   {
     "id": "col-mkszyxy-1",
+    "name": "马克思主义学院·科研与学科建",
+    "categoryId": "college",
+    "listUrl": "http://mkszyxy.nuc.edu.cn/kyyxkjs.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-mkszyxy-2",
+    "name": "马克思主义学院·新闻",
+    "categoryId": "college",
+    "listUrl": "http://mkszyxy.nuc.edu.cn/index/xyxw.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-mkszyxy-3",
     "name": "马克思主义学院·思政课教学",
     "categoryId": "college",
     "listUrl": "http://mkszyxy.nuc.edu.cn/szkjx.htm",
@@ -297,19 +531,55 @@
     "detailLimit": 8
   },
   {
+    "id": "col-mkszyxy-4",
+    "name": "马克思主义学院·教学团队",
+    "categoryId": "college",
+    "listUrl": "http://mkszyxy.nuc.edu.cn/szkjx/jxtd.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-mkszyxy-5",
+    "name": "马克思主义学院·科研动态",
+    "categoryId": "college",
+    "listUrl": "http://mkszyxy.nuc.edu.cn/kyyxkjs/kydt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
     "id": "col-epe",
     "name": "能源与动力工程学院",
     "categoryId": "college",
-    "listUrl": "http://epe.nuc.edu.cn/xsgz/wjtz.htm",
+    "listUrl": "http://epe.nuc.edu.cn/bksjy/jwdt.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8
   },
   {
     "id": "col-epe-1",
-    "name": "能源与动力工程学院·教务动态",
+    "name": "能源与动力工程学院·学生工作",
     "categoryId": "college",
-    "listUrl": "http://epe.nuc.edu.cn/bksjy/jwdt.htm",
+    "listUrl": "http://epe.nuc.edu.cn/xsgz.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-epe-2",
+    "name": "能源与动力工程学院·科研科资料",
+    "categoryId": "college",
+    "listUrl": "http://epe.nuc.edu.cn/zlxz/kykzl.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-epe-3",
+    "name": "能源与动力工程学院·科研动态",
+    "categoryId": "college",
+    "listUrl": "http://epe.nuc.edu.cn/kxyj/kydt.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8
@@ -328,6 +598,15 @@
     "name": "人文社会科学学院·教学科",
     "categoryId": "college",
     "listUrl": "http://shss.nuc.edu.cn/tzgg/jxk.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-shss-2",
+    "name": "人文社会科学学院·学院新闻",
+    "categoryId": "college",
+    "listUrl": "http://shss.nuc.edu.cn/xyxw.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8
@@ -369,6 +648,24 @@
     "detailLimit": 8
   },
   {
+    "id": "col-math-2",
+    "name": "数学学院·科研动态",
+    "categoryId": "college",
+    "listUrl": "http://math.nuc.edu.cn/kxyj/kydt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-math-3",
+    "name": "数学学院·学术报告",
+    "categoryId": "college",
+    "listUrl": "http://math.nuc.edu.cn/kxyj/xsbg.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
     "id": "col-tyxy",
     "name": "体育学院",
     "categoryId": "college",
@@ -387,6 +684,15 @@
     "detailLimit": 8
   },
   {
+    "id": "col-tyxy-2",
+    "name": "体育学院·就业动态",
+    "categoryId": "college",
+    "listUrl": "http://tyxy.nuc.edu.cn/zsjy/jydt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
     "id": "col-wtdx",
     "name": "信息与通信工程学院",
     "categoryId": "college",
@@ -400,6 +706,33 @@
     "name": "信息与通信工程学院·学生工作",
     "categoryId": "college",
     "listUrl": "http://5y.nuc.edu.cn/xsgz/sbgz.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-wtdx-2",
+    "name": "信息与通信工程学院·教学在信通",
+    "categoryId": "college",
+    "listUrl": "http://5y.nuc.edu.cn/index/jxzxt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-wtdx-3",
+    "name": "信息与通信工程学院·学院新闻",
+    "categoryId": "college",
+    "listUrl": "http://5y.nuc.edu.cn/index/xyxw.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-wtdx-4",
+    "name": "信息与通信工程学院·招聘信息",
+    "categoryId": "college",
+    "listUrl": "http://5y.nuc.edu.cn/zsjy/zpxx.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8
@@ -427,6 +760,42 @@
     "name": "艺术学院·党建动态",
     "categoryId": "college",
     "listUrl": "http://art.nuc.edu.cn/dqgz/djdt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-art-2",
+    "name": "艺术学院·科研动态",
+    "categoryId": "college",
+    "listUrl": "http://art.nuc.edu.cn/kxyj/kydt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-art-3",
+    "name": "艺术学院·本科生培养",
+    "categoryId": "college",
+    "listUrl": "http://art.nuc.edu.cn/rcpy/bkspy/jxdt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-art-4",
+    "name": "艺术学院·学生工作",
+    "categoryId": "college",
+    "listUrl": "http://art.nuc.edu.cn/xsgz/xgdt.htm",
+    "pageTemplate": null,
+    "maxPages": 1,
+    "detailLimit": 8
+  },
+  {
+    "id": "col-art-5",
+    "name": "艺术学院·工会活动",
+    "categoryId": "college",
+    "listUrl": "http://art.nuc.edu.cn/dqgz/ghhd.htm",
     "pageTemplate": null,
     "maxPages": 1,
     "detailLimit": 8

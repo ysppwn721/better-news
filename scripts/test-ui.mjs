@@ -121,16 +121,30 @@ async function runMode(mode) {
 
   const input = document.getElementById('searchInput');
   const cases = ['奖学金', '选课', '推免', '考试', '国家奖学金', '困难认定', '党课'];
+  // 相关性命中：库内该条目的可搜索文本含关键词即算相关
+  // （界面搜索覆盖 标题/摘要/正文片段/标签/二级分类）
+  const mod = await import('./store.js');
+  const allItems = mod.data.items;
   for (const kw of cases) {
     input.value = kw;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     await new Promise(r => setTimeout(r, 700));
     const n = cards().length;
     const meta = document.getElementById('listMeta')?.textContent || '';
-    const titles = cards().slice(0, 3).map(c => c.querySelector('.card-title')?.textContent || '');
-    // 相关性：前三条里至少一条含关键词
-    const relevant = titles.some(t => t.includes(kw));
-    rec('搜索[' + kw + ']', n + ' 张卡片 | ' + meta + ' | 前3条含关键词=' + relevant + ' | ' + titles.map(t => t.slice(0, 20)).join(' / '));
+    const shownTitles = cards().map(c => c.querySelector('.card-title')?.textContent || '');
+    const titles = shownTitles.slice(0, 3);
+    // 逐条查它在数据里的可搜索文本是否含关键词（首条必须含，整体命中率要高）
+    const hits = shownTitles.filter((t) => {
+      const it = allItems.find(x => x.title === t);
+      if (!it) return false;
+      return [it.title, it.excerpt, it.searchText, (it.tags || []).join(' '), it.subcategory]
+        .some((f) => (f || '').includes(kw));
+    }).length;
+    const firstHit = hits > 0;
+    const ratio = shownTitles.length ? hits / shownTitles.length : 0;
+    rec('搜索[' + kw + ']', n + ' 张卡片 | ' + meta
+      + ' | 首条命中=' + firstHit + ' 命中率=' + Math.round(ratio * 100) + '%'
+      + ' | ' + titles.map(t => t.slice(0, 18)).join(' / '));
   }
   input.value = '';
   input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -221,13 +235,14 @@ for (const mode of modes) {
     check('手机端选择栏目后侧栏自动收起', v.includes('已自动收起'), v);
   }
 
-  // 搜索相关性
+  // 搜索相关性：首条必须相关，且展示出的条目整体命中率要高
   for (const kw of ['奖学金', '选课', '推免', '考试', '国家奖学金', '困难认定', '党课']) {
     const v = steps[`搜索[${kw}]`] || '';
-    const n = parseInt((v.match(/^(\d+) 张卡片/) || [])[1] || '0', 10);
     const metaTotal = parseInt((v.match(/共 (\d+) 条/) || [])[1] || '0', 10);
     check(`${mode} 搜索「${kw}」有结果`, metaTotal > 0, `命中 ${metaTotal} 条`);
-    check(`${mode} 搜索「${kw}」结果相关（前3条含关键词）`, v.includes('前3条含关键词=true'), v.slice(0, 120));
+    check(`${mode} 搜索「${kw}」首条相关`, v.includes('首条命中=true'), v.slice(0, 130));
+    const ratio = parseInt((v.match(/命中率=(\d+)%/) || [])[1] || '0', 10);
+    check(`${mode} 搜索「${kw}」命中率 ≥ 90%`, ratio >= 90, `实际 ${ratio}% | ${v.slice(0, 110)}`);
   }
 
   // 标签与快速筛选

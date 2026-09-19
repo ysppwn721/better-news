@@ -187,8 +187,15 @@ class AppDataSource {
         const left = daysUntil(d.date);
         if (left >= -1 && left <= 45) {
           out.push({
-            itemId: it.id, title: it.title, date: d.date, daysLeft: left,
-            hint: d.hint, sourceName: it.sourceName, categoryName: it.categoryName,
+            // 用与界面一致的条目 id：本类在 init() 里用 URL 顺序重排了 id，
+            // 若这里用别的东西作 id，界面的「有截止」筛选与截止面板都会对不上。
+            itemId: it.id,
+            title: it.title,
+            date: d.date,
+            daysLeft: left,
+            hint: d.hint,
+            sourceName: it.sourceName,
+            categoryName: it.categoryName,
             important: it.important,
           });
         }
@@ -199,6 +206,13 @@ class AppDataSource {
   }
 
   async loadItems() {
+    // 补上搜索用字段：界面会搜 searchText（正文片段）。
+    // 数据库里正文完整，这里截取一份供搜索，避免只搜标题漏掉正文用词。
+    this.items = this.items.map((it) => ({
+      ...it,
+      excerpt: it.excerpt || (it.bodyText || '').slice(0, 300).replace(/\s+/g, ' ').trim(),
+      searchText: (it.bodyText || '').slice(0, 2000).replace(/\s+/g, ' ').trim(),
+    }));
     return this.items;
   }
 

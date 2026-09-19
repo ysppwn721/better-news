@@ -90,7 +90,10 @@ try {
         process.stdout.write(`  ${c.name} … `);
         try {
           const cols = await discoverColumns(client, site, { minItems: 3 });
-          const chosen = pickColumns(cols, 2);
+          // 每个学院最多抓 6 个栏目：
+          // 只取 2 个会漏掉「最近才更新的栏目」，用户反馈过「学院最近发的通知没有」。
+          // 6 个在请求量（学院站共 21×6≈126 个列表页）与覆盖度之间取平衡。
+          const chosen = pickColumns(cols, 6);
           result[`col-${c.id}`] = {
             collegeId: c.id,
             collegeName: c.name,

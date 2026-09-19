@@ -133,7 +133,13 @@ export async function discoverColumns(client, siteUrl, { maxCandidates = 30, min
 /** 明确是「通知栏」的名称 → 直接置顶（学生的第一诉求就是通知公告栏） */
 const NOTICE_NAME_RE = /通知|公告|公示|文件通知|事务通知/;
 /** 学生关心的次级栏目 */
-const STUDENT_NAME_RE = /学生工作|团学|党群|党建|党务|学工|教务|教学|研究生|培养|奖学金|资助/;
+const STUDENT_NAME_RE = /学生工作|团学|党群|党建|党务|学工|教务|教学|研究生|培养|奖学金|资助|新闻|就业|科研|招生/;
+
+/** 距今多少个月；无日期返回 Infinity */
+export function monthsSince(latest) {
+  if (!latest) return Infinity;
+  return (Date.now() - new Date(`${latest}T00:00:00+08:00`).getTime()) / (30 * 86400000);
+}
 
 /** 候选栏目的最终排序分 */
 function rankScore({ score, contentScore, latest }) {
@@ -171,20 +177,48 @@ export function columnKey(name) {
 
 /**
  * 为一个学院挑选要抓取的栏目。
- * 取综合分最高的前 N 个，但要求内容实测分不能太低（否则「本科生招生」这类
- * 名字高分、内容无用的栏目会被选中），并跳过去重后同名的栏目。
+ *
+ * 判据（按优先级）：
+ *   1) 最近还在更新的栏目一律纳入（默认 90 天内）——这是学生最在意的：
+ *      「学院最近发的通知不能漏」。曾因为只取综合分前 2 个而漏掉最新栏目，
+ *      导致用户反馈「最近发的全没有」。
+ *   2) 综合分最高的作为兜底，保证每个学院至少有一个入口。
+ *   3) 排除内容实测分过低且已停更很久的栏目（如只有 2021 年内容的页面）。
+ *
+ * @param {Array} columns 已排序的候选栏目
+ * @param {number} max 每学院最多抓几个（控制请求量）
+ * @param {{freshMonths?: number, minContent?: number}} [opts]
  */
-export function pickColumns(columns, max = 2, { minContent = 0.3 } = {}) {
+export function pickColumns(columns, max = 6, { freshMonths = 3, minContent = 0.3 } = {}) {
   const out = [];
   const seen = new Set();
-  for (const c of columns) {
-    if (out.length >= max) break;
+  const take = (c) => {
     const key = columnKey(c.name);
-    if (seen.has(key)) continue;
-    // 第一个栏目放宽（保证每个学院都有入口），后续必须过内容质量门槛
-    if (out.length > 0 && c.contentScore < minContent) continue;
+    if (seen.has(key)) return false;
     seen.add(key);
     out.push(c);
+    return true;
+  };
+
+  // 1) 新鲜栏目优先（按综合分顺序遍历，保证都是「通知类」优先）
+  for (const c of columns) {
+    if (out.length >= max) break;
+    if (monthsSince(c.latest) <= freshMonths) take(c);
   }
-  return out;
+
+  // 2) 兜底：保证至少有一个入口
+  if (!out.length) {
+    for (const c of columns) {
+      if (take(c)) break;
+    }
+  }
+
+  // 3) 补充：质量达标但不够新鲜的重要栏目（如「学院新闻」这类时效稍弱但内容相关的）
+  for (const c of columns) {
+    if (out.length >= max) break;
+    if (c.contentScore >= 0.6 && monthsSince(c.latest) <= 12) take(c);
+  }
+
+  // 按综合分排序，让第一个是最重要的（用作默认入口）
+  return out.sort((a, b) => b.total - a.total);
 }

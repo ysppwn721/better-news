@@ -157,12 +157,18 @@ function sanitizeHtml(html) {
 
 const catById = (id) => INDEX?.categories.find((c) => c.id === id);
 
-/** 截止时间：从快照索引里按条目 id 取（服务端已算好） */
+/**
+ * 截止时间索引：按条目 id 建立映射。
+ *
+ * 注意与 INDEX.deadlines 的区别：那边是「条目 → 多个截止时间」的列表，
+ * 这里取每个条目最紧迫的一个，供卡片与详情页快速显示。
+ */
 const deadlineByItem = new Map();
 function buildDeadlineIndex() {
   deadlineByItem.clear();
   for (const d of INDEX.deadlines || []) {
-    if (!deadlineByItem.has(d.itemId) || Math.abs(d.daysLeft) < Math.abs(deadlineByItem.get(d.itemId).daysLeft)) {
+    const cur = deadlineByItem.get(d.itemId);
+    if (!cur || Math.abs(d.daysLeft) < Math.abs(cur.daysLeft)) {
       deadlineByItem.set(d.itemId, d);
     }
   }
@@ -198,12 +204,15 @@ function applyFilters() {
       return t >= cutoff;
     });
   }
+  // 搜索：过滤 + 记录相关度，供排序使用
+  let searchScore = null;
   if (q) {
-    list = list.filter((i) =>
-      i.title.toLowerCase().includes(q)
-      || (i.excerpt || '').toLowerCase().includes(q)
-      || (i.sourceName || '').toLowerCase().includes(q)
-      || (i.tags || []).some((t) => t.toLowerCase().includes(q)));
+    searchScore = new Map();
+    list = list.filter((i) => {
+      const s = matchScore(i, q);
+      if (s > 0) { searchScore.set(i, s); return true; }
+      return false;
+    });
   }
 
   if (state.sort === 'firstSeen') {
@@ -212,7 +221,83 @@ function applyFilters() {
     list = [...list].sort((a, b) =>
       String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')) || b.id - a.id);
   }
+
+  // 搜索时按相关度优先：整串命中排在分词命中之前，
+  // 否则模糊命中会混在精确命中里，用户看到的第一条可能不是最相关的。
+  if (searchScore) {
+    list = [...list].sort((a, b) => (searchScore.get(b) || 0) - (searchScore.get(a) || 0));
+  }
+
   return list;
+}
+
+/**
+ * 搜索匹配，返回相关度分值（越高越相关）。
+ *
+ * 分层的意义在于排序：只区分「精确/模糊」不够——搜「选课」时有 300+ 条
+ * 正文里提到选课的通知，与标题就叫「…选课的通知」的混在一起，
+ * 用户最想要的那条被淹没。按命中位置细分后，标题命中稳定排在前面。
+ *
+ *   5 = 标题含关键词（用户多半就是在找这类）
+ *   4 = 来源或栏目含关键词
+ *   3 = 摘要含关键词
+ *   2 = 正文片段含关键词
+ *   1 = 分词覆盖命中（用户说法与原文不完全一致）
+ *   0 = 不匹配
+ *
+ * 关键前提：搜索范围包含正文片段（searchText）——此前只搜标题+摘要，
+ * 导致「困难认定」（正文用词、标题里没有）完全搜不到，
+ * 这是用户反馈「搜索几乎没用」的真正原因。
+ */
+function matchScore(item, q) {
+  const title = (item.title || '').toLowerCase();
+  const excerpt = (item.excerpt || '').toLowerCase();
+  const searchText = (item.searchText || '').toLowerCase();
+  const subcategory = (item.subcategory || '').toLowerCase();
+  const tags = (item.tags || []).join(' ').toLowerCase();
+  const source = (item.sourceName || '').toLowerCase();
+
+  if (title.includes(q)) return 6;
+  if (excerpt.includes(q)) return 5;
+  // 注：categoryName（如「教务选课」）刻意不参与整串匹配——
+  // 栏目名含「选课」会让该栏目下 300 条通知全部命中，把真正的选课通知淹没。
+  // 标签与二级分类可以参与（它们描述的是内容本身）。
+  if (tags.includes(q) || subcategory.includes(q)) return 4;
+  if (searchText.includes(q)) return 3;
+  if (source.includes(q)) return 2;
+  if (q.length < 3) return 0;
+
+  const haystack = `${title} ${excerpt} ${searchText} ${tags}`;
+
+  // 分词覆盖兜底：处理「用户说法与原文不一致」，
+  // 例如数据写「家庭经济困难本科学生认定工作」而用户搜「困难认定」。
+  //
+  // 两道约束缺一不可：
+  //   1) 查询的每一段都要被完整覆盖（避免「国家奖学金」匹配到「学业奖学金」）
+  //   2) 查询里的每个单字都必须出现过（避免「招生简章」匹配到只有「招生就业」的条目）
+  for (const ch of q) {
+    if (!haystack.includes(ch)) return 0;
+  }
+
+  const cuts = q.length >= 4
+    ? [[0, Math.ceil(q.length * 0.6)], [Math.ceil(q.length * 0.6), q.length]]
+    : [[0, q.length]];
+
+  for (const [from, to] of cuts) {
+    const part = q.slice(from, to);
+    const coveredPart = new Array(part.length).fill(false);
+    for (let n = Math.min(4, part.length); n >= 2; n--) {
+      for (let i = 0; i + n <= part.length; i++) {
+        const gram = part.slice(i, i + n);
+        if (haystack.includes(gram)) {
+          for (let k = i; k < i + n; k++) coveredPart[k] = true;
+        }
+      }
+    }
+    if (!coveredPart.every(Boolean)) return 0;
+  }
+
+  return 1;
 }
 
 // ============================================================
@@ -231,10 +316,10 @@ function renderCategories() {
     b.append(ic);
     b.append(el('span', 'nm', label));
     b.append(el('span', `ct${unread ? ' fresh' : ''}`, unread ? String(unread) : (count ? String(count) : '')));
-    b.onclick = onclick;
+    // 选择后收起移动端抽屉，否则抽屉盖住列表，用户会以为「点了没反应」
+    b.onclick = () => { onclick(); closeSidebar(); };
     nav.append(b);
   };
-
   const allUnread = ITEMS.filter((i) => !stateStore.isRead(i)).length;
   addItem('全部通知', '全', '#546e7a', ITEMS.length, allUnread,
     state.category === 'all' && !state.source && !state.filters.has('college'),
@@ -284,6 +369,7 @@ function renderTags() {
       state.tag = state.tag === t ? null : t;
       resetView(true);
       render();
+      closeSidebar();
     };
     cloud.append(b);
   }
@@ -311,6 +397,7 @@ function renderSources() {
       resetView(true);
       state.source = state.source === s.id ? null : s.id;
       render();
+      closeSidebar();
     };
     box.append(b);
   }
@@ -930,6 +1017,18 @@ function renderPushRow() {
   }
 }
 
+/**
+ * 收起移动端侧栏。
+ *
+ * 手机端侧栏是覆盖在列表之上的抽屉（position: fixed），
+ * 选中栏目后如果不收起，用户看不到列表更新，会以为「点了没反应」，
+ * 需要再点一次「栏目」关闭抽屉才看到结果。
+ */
+function closeSidebar() {
+  const sb = $('#sidebar');
+  if (sb) sb.classList.remove('open');
+}
+
 function bindEvents() {
   let searchTimer = null;
   $('#searchInput').addEventListener('input', (e) => {
@@ -1072,6 +1171,7 @@ function bindEvents() {
         $('#sidebar').classList.toggle('open');
         return;
       }
+      closeSidebar();
       if (target === 'deadlines') { openDeadlines(); return; }
       if (target === 'search') { $('#searchInput').focus(); return; }
       if (target === 'fetch') {
@@ -1082,6 +1182,15 @@ function bindEvents() {
       resetView();
       render();
     };
+  });
+
+  // 点击侧栏之外的区域也收起抽屉（移动端常见交互期待）
+  document.addEventListener('click', (e) => {
+    const sb = $('#sidebar');
+    if (!sb?.classList.contains('open')) return;
+    if (sb.contains(e.target)) return;
+    if (e.target.closest?.('.mnav-btn[data-target="menu"]')) return;
+    closeSidebar();
   });
 
   wireSettings();

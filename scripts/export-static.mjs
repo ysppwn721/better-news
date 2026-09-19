@@ -20,8 +20,21 @@ import { extractDeadlines, daysUntil } from '../src/core/deadline.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** 列表摘要长度：既要能显示两行，也要够本地搜索命中关键词 */
+/** 列表摘要长度：卡片上显示两行 */
 const EXCERPT_CHARS = 300;
+
+/**
+ * 搜索索引长度：每篇条目保留多长的正文供本地搜索。
+ *
+ * 为什么需要：只搜标题与摘要会漏掉用户的实际说法。实测「困难认定」
+ * 在 1260 条里仅 2 条标题含该词，但正文里有 12 条相关——搜不到用户就会认为搜索没用。
+ *
+ * 为什么是 1000 字而不是更长：中文在 UTF-8 下每字 3 字节，
+ * 截 2000 字会让 items.json 从 0.5 MB 涨到 3.1 MB，
+ * 在 Cloudflare 隧道等慢链路上首屏明显变慢；1000 字约 1.7 MB，是更好的平衡点。
+ * （App 端不受此限：它本地存的是完整正文，搜索覆盖全文。）
+ */
+const SEARCH_TEXT_CHARS = 1000;
 
 export function exportStatic({ outDir = resolve(ROOT, 'public/data'), store, quiet = false } = {}) {
   const db = store || new Store();
@@ -52,6 +65,8 @@ export function exportStatic({ outDir = resolve(ROOT, 'public/data'), store, qui
     important: it.important,
     restricted: it.restricted,
     excerpt: (it.bodyText || '').slice(0, EXCERPT_CHARS).replace(/\s+/g, ' ').trim(),
+    // 正文片段：仅供本地搜索使用（卡片上不显示）
+    searchText: (it.bodyText || '').slice(0, SEARCH_TEXT_CHARS).replace(/\s+/g, ' ').trim(),
   }));
   writeJson(resolve(outDir, 'items.json'), items);
 

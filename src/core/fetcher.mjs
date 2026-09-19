@@ -7,6 +7,34 @@ import { analyze, inferSubcategory, makeSummary } from '../core/keywords.mjs';
 import { parseDetail, parseList } from '../sources/cms.mjs';
 import { CATEGORY_MAP, hintCategory } from '../sources/registry.mjs';
 
+/**
+ * 按「同站点 + 同标题」去重。
+ *
+ * 为什么需要：学院常把同一条通知同时发在多个栏目下，于是产生多个 URL
+ * （例如信息与通信工程学院的研究生奖学金公示同时出现在 /info/1056/ 与 /info/1024/）。
+ * 以 URL 为唯一键无法识别这种情况，学生就会在列表里看到同一条通知出现两次。
+ *
+ * 保留策略：同一标题保留发布时间较新的一份；时间相同则保留先遇到的。
+ * 只在同一站点内去重——不同部门发布同名通知属于正常情况，不应合并。
+ */
+export function dedupeByTitle(items) {
+  const best = new Map();
+  for (const it of items) {
+    let host = '';
+    try { host = new URL(it.url).hostname.replace(/^www\./, ''); } catch { host = it.url; }
+    const key = `${host}::${(it.title || '').replace(/\s+/g, '')}`;
+    const prev = best.get(key);
+    if (!prev) { best.set(key, it); continue; }
+    const a = it.date || '';
+    const b = prev.date || '';
+    if (a > b) best.set(key, it);
+  }
+  // 保持原有顺序输出，只剔除被判定为重复的条目
+  const keep = new Set([...best.values()].map((x) => x.url));
+  const out = items.filter((x) => keep.has(x.url));
+  return { items: out, removed: items.length - out.length };
+}
+
 /** 简单并发池：避免对校园网站点造成压力，同时保证速度 */
 async function pooled(items, limit, worker) {
   const results = [];
@@ -87,6 +115,13 @@ export class Fetcher {
     }
 
     let all = [...collected.values()].slice(0, maxItems);
+
+    // 同一通知常被发在多个栏目下（产生多个 URL），按标题去重后再入库
+    const deduped = dedupeByTitle(all);
+    all = deduped.items;
+    if (deduped.removed > 0) {
+      log.debug(`[${source.name}] 标题去重移除 ${deduped.removed} 条跨栏目重复`);
+    }
 
     // 2) 增量：已入库且未过期的条目直接跳过详情抓取
     const known = new Map();

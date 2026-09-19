@@ -40,23 +40,27 @@ function extractAsset(assetName) {
 
 const appJs = extractAsset('assets/public/app.js');
 if (!appJs) { console.error('✗ 包内找不到 assets/public/app.js'); process.exit(1); }
+const indexHtml = extractAsset('assets/public/index.html') || '';
+const appStore = extractAsset('assets/public/app-store.mjs') || '';
 
-console.log('=== APK 内 app.js 关键实现检查 ===');
-console.log(`  文件大小: ${(appJs.length / 1024).toFixed(0)} KB`);
+console.log('=== APK 内关键实现检查 ===');
+console.log(`  app.js       ${(appJs.length / 1024).toFixed(0)} KB`);
+console.log(`  app-store.mjs ${(appStore.length / 1024).toFixed(0)} KB`);
+console.log(`  index.html   ${(indexHtml.length / 1024).toFixed(0)} KB`);
 
 const checks = [
-  ['置顶聚合 prioritySourceIds', /prioritySourceIds/],
-  ['resetView 清空 filters', /function resetView[\s\S]{0,400}?filters\.clear\(\)/],
-  ['纯标题搜索（terms.every + title.includes）', /terms\.every\(\(t\)\s*=>\s*title\.includes\(t\)\)/],
-  ['搜索不再用 excerpt', /const excerpt = \(item\.excerpt/],
-  ['搜索不再用 searchText', /item\.searchText/],
-  ['加载中只转图标（.btn-icon）', /btn-icon/],
+  ['置顶聚合 prioritySourceIds', /prioritySourceIds/, appJs],
+  ['resetView 清空 filters', /function resetView[\s\S]{0,400}?filters\.clear\(\)/, appJs],
+  ['纯标题搜索（terms.every + title.includes）', /terms\.every\(\(t\)\s*=>\s*title\.includes\(t\)\)/, appJs],
+  ['搜索不再用摘要兜底', /const excerpt = \(item\.excerpt/, appJs, true],
+  ['抓取完成通知界面（onChange 回调）', /onChange/, appStore],
+  ['抓取进度提示', /正在抓取最新通知|正在更新/, appJs],
+  ['刷新按钮图标为元素（只转图标）', /class="btn-icon"/, indexHtml],
 ];
 
 let stale = 0;
-for (const [label, re] of checks) {
-  const present = re.test(appJs);
-  const shouldBeAbsent = label.includes('不再用');
+for (const [label, re, target, shouldBeAbsent] of checks) {
+  const present = re.test(target);
   const ok = shouldBeAbsent ? !present : present;
   if (!ok) stale++;
   console.log(`  ${ok ? '✓' : '✗'} ${label}${shouldBeAbsent ? '（应为不存在）' : ''}`);

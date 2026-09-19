@@ -2,7 +2,11 @@
 
 把分散在中北大学各部门官网上、必须挨个点开才能看的通知公告，汇总到一个页面 / 一个 App 里，按栏目分栏，并对新消息和截止时间做提醒。
 
-**📱 Android App 下载**：<https://github.com/ysppwn721/better-news/releases/download/v1.0.0/app-release.apk>
+**📱 Android App 下载**：<https://github.com/ysppwn721/better-news/releases/download/v1.1/app-release.apk>
+
+> 安装提示：若之前装过旧版，直接覆盖安装即可（版本号已递增到 1.1）。
+> 首次打开会自动抓取全部 102 个信源，约需 **1~2 分钟**，界面顶部会显示抓取进度。
+> 抓完后列表自动出现内容（**无需手动刷新**）。
 
 **🌐 网页版**：<https://ysppwn721.github.io/better-news/>
 

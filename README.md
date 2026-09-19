@@ -2,13 +2,38 @@
 
 把分散在中北大学各部门官网上、必须挨个点开才能看的通知公告，汇总到一个页面里，按栏目分栏，并对新消息和截止时间做提醒。支持部署成网页（手机可加到主屏幕当 App 用）。
 
+**线上地址：<https://ysppwn721.github.io/better-news/>** （手机用浏览器打开后「添加到主屏幕」即可当 App 用）
+
 > **它解决什么问题**：学校的党务通知、学生工作部通知、选课通知、研究生院通知分别挂在不同的网站上，没有统一入口。漏看一条选课或评奖通知，后续计划就会受影响。这个工具把这些页面定时抓下来，去重、归类、加标签，让你在一个页面里看完。
+
+---
+
+## 当前部署形态
+
+```
+GitHub Actions（每天 6 次定时抓取）
+        │  抓取 → 导出静态 JSON 快照 → 提交到仓库
+        ▼
+GitHub Pages（托管 public/ 目录）──► 手机 / 电脑浏览器
+```
+
+| 组件 | 位置 | 说明 |
+|---|---|---|
+| 前端 + 数据快照 | GitHub Pages | 纯静态，无需服务器，HTTPS 自动签发 |
+| 定时抓取 | GitHub Actions `fetch.yml` | 每天 6 次，结果自动提交并触发重新发布 |
+| 发布站点 | GitHub Actions `pages.yml` | `main` 有推送即重新发布 |
+| 后台推送 | Cloudflare Worker（可选） | 见「开启手机后台推送」 |
 
 ---
 
 ## 两种使用方式
 
-### 方式一：本地运行（功能最全，可手动抓取）
+### 方式一：直接用线上站点（推荐）
+
+打开 <https://ysppwn721.github.io/better-news/>，手机「添加到主屏幕」。
+数据由 GitHub Actions 自动更新，不需要你保持任何东西运行。
+
+### 方式二：本地运行（可手动抓取、改代码调试）
 
 ```bash
 npm install
@@ -23,16 +48,6 @@ npm run discover   # 自动发现 21 个学院的通知栏目（约 3 分钟）
 npm run fetch:all  # 抓取校级 + 学院
 ```
 
-### 方式二：线上部署（手机随时看，自动更新）
-
-```bash
-npm run fetch:all        # 抓取
-npm run export           # 导出静态快照到 public/data/
-# 然后推送到 GitHub，由 Cloudflare Pages 托管
-```
-
-线上形态由 **GitHub Actions 定时抓取 → 提交快照 → Cloudflare Pages 自动部署**，浏览器端只读。
-详细步骤见下方「部署到线上」。
 
 ---
 
@@ -88,36 +103,32 @@ npm run export           # 导出静态快照到 public/data/
 
 ## 部署到线上
 
-整体结构：**GitHub Actions 抓取 → 提交 JSON 快照 → Cloudflare Pages 托管前端**。
-这样不需要自己养服务器，也不占用本机开机时间。
+### 方案 A：GitHub Pages（当前使用，无需额外账号）
 
-### 1. 创建 GitHub 仓库并推送
+仓库已配置好，推送到 `main` 即自动发布：
 
-```bash
-gh auth login                                    # 若未登录
-gh repo create better-news --private --source=. --remote=origin --push
-```
+- `.github/workflows/pages.yml` —— 把 `public/` 发布到 Pages
+- `.github/workflows/fetch.yml` —— 定时抓取并提交快照，提交后触发上面的发布
 
-若不用 `gh`，也可在 GitHub 网页建空仓库后：
+首次启用 Pages（仓库 Settings → Pages → Source 选 **GitHub Actions**，或执行）：
 
 ```bash
-git remote add origin https://github.com/<你的用户名>/better-news.git
-git push -u origin main
+node scripts/enable-pages.mjs <你的用户名>/better-news
 ```
 
-### 2. 打开 GitHub Actions
+> 注意：免费账号的 GitHub Pages 要求仓库为**公开**。本站内容全部来自学校官网公开通知，
+> 公开无妨；若想私有，请改用方案 B。
 
-推送后进入仓库的 **Actions** 页，启用工作流：
+绑定自有域名：Settings → Pages → Custom domain，填你的域名并在 DNS 添加 CNAME。
 
-- **抓取校园通知并更新数据快照**（`fetch.yml`）：每天 6 次自动抓取并提交快照。默认分支上才生效。
-  可在 Actions 页面点 **Run workflow** 立即跑一次。
-- **部署到 Cloudflare Pages**（`deploy.yml`）：推送 `public/**` 时自动部署。
+### 方案 B：Cloudflare Pages（国内访问更快，需 Cloudflare 账号）
 
-> 首次跑 `fetch.yml` 会自动执行 `npm run discover` 生成各学院栏目地址。
+```bash
+node scripts/check-ready.mjs     # 先看缺什么
+node scripts/deploy-cloud.mjs    # 一键部署（幂等，可重复执行）
+```
 
-### 3. 接入 Cloudflare Pages
-
-在 Cloudflare 控制台 **Workers & Pages → Create → Pages → Connect to Git**，选择该仓库：
+或在 Cloudflare 控制台 **Workers & Pages → Create → Pages → Connect to Git**：
 
 | 配置项 | 值 |
 |---|---|
@@ -125,19 +136,8 @@ git push -u origin main
 | Build command | （留空） |
 | Build output directory | `public` |
 
-保存后每次推送会自动构建部署，得到一个 `https://<项目名>.pages.dev` 的域名，手机可直接访问并添加到主屏幕。
+两种方案可同时存在，互不影响。
 
-### 4. 让 GitHub Actions 也能部署（可选）
-
-如果希望由 Actions 直接部署（而不是 Cloudflare 的 Git 集成），在仓库
-**Settings → Secrets and variables → Actions** 添加：
-
-| Secret | 说明 |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare 控制台创建令牌，权限选 **Account → Cloudflare Pages → Edit** |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 控制台右侧栏的 Account ID |
-
-未配置时 `deploy.yml` 会自动跳过并给出提示，不影响抓取任务。
 
 ---
 

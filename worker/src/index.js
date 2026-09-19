@@ -23,6 +23,7 @@
  *   npx wrangler deploy
  */
 import { buildPushPayload } from '@block65/webcrypto-web-push';
+import { probeSites } from './probe.js';
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -66,6 +67,18 @@ export default {
 
       case '/test':
         return handleTest(env);
+
+      // 诊断接口：探测 Worker 出口能否访问校内站点
+      // （用于评估「把抓取搬到 Worker」是否可行；不影响正常功能）
+      case '/probe': {
+        const results = await probeSites();
+        return json({
+          region: request.cf?.colo || null,
+          country: request.cf?.country || null,
+          asn: request.cf?.asn || null,
+          results,
+        });
+      }
 
       default:
         return json({ error: '未知接口' }, 404);

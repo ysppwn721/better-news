@@ -27,31 +27,62 @@ const local = {
   },
 };
 
-/** 已读/收藏集合（存成 id 数组，序列化后体积小） */
+/**
+ * 已读/收藏集合。
+ *
+ * 用「条目 URL 的短哈希」而非数据库 id 作为键：
+ * 抓取端在数据库重建（如 CI 缓存失效）或换机器时会重新分配条目 id，
+ * 若按 id 记录，用户的已读状态会整体错乱——挂到别的通知上。
+ * URL 是条目的天然唯一键，跨环境稳定。
+ */
+const keyOf = (item) => {
+  const url = typeof item === 'string' ? item : item?.url;
+  if (!url) return '';
+  // FNV-1a 32 位哈希，足够区分且比存完整 URL 省空间
+  let h = 0x811c9dc5;
+  for (let i = 0; i < url.length; i++) {
+    h ^= url.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(36);
+};
+
 const stateStore = {
-  readIds: new Set(local.get('readIds', [])),
-  starredIds: new Set(local.get('starredIds', [])),
+  readIds: new Set(local.get('readKeys', [])),
+  starredIds: new Set(local.get('starredKeys', [])),
   notifiedId: local.get('notifiedId', 0),
   lastVisitMaxId: local.get('lastVisitMaxId', 0),
 
-  isRead: (id) => stateStore.readIds.has(id),
-  isStarred: (id) => stateStore.starredIds.has(id),
+  key: keyOf,
+  isRead: (item) => stateStore.readIds.has(keyOf(item)),
+  isStarred: (item) => stateStore.starredIds.has(keyOf(item)),
 
-  setRead(id, on = true) {
-    on ? stateStore.readIds.add(id) : stateStore.readIds.delete(id);
-    local.set('readIds', [...stateStore.readIds]);
+  setRead(item, on = true) {
+    const k = keyOf(item);
+    if (!k) return;
+    on ? stateStore.readIds.add(k) : stateStore.readIds.delete(k);
+    local.set('readKeys', [...stateStore.readIds]);
   },
-  setStarred(id, on = true) {
-    on ? stateStore.starredIds.add(id) : stateStore.starredIds.delete(id);
-    local.set('starredIds', [...stateStore.starredIds]);
+  setStarred(item, on = true) {
+    const k = keyOf(item);
+    if (!k) return;
+    on ? stateStore.starredIds.add(k) : stateStore.starredIds.delete(k);
+    local.set('starredKeys', [...stateStore.starredIds]);
   },
-  markAllRead(ids) {
-    for (const id of ids) stateStore.readIds.add(id);
-    local.set('readIds', [...stateStore.readIds]);
+  markAllRead(items) {
+    for (const it of items) {
+      const k = keyOf(it);
+      if (k) stateStore.readIds.add(k);
+    }
+    local.set('readKeys', [...stateStore.readIds]);
+  },
+  clearRead() {
+    stateStore.readIds.clear();
+    local.set('readKeys', []);
   },
   setNotified(id) { stateStore.notifiedId = id; local.set('notifiedId', id); },
   snapshotVisit(maxId) { local.set('lastVisitMaxId', maxId); },
-  /** 上次访问之后新增的条目数（用于「N 条新通知」提示） */
+  /** 上次访问之后新增的条目数（用于「N 条新通知」提示，按 id 增量判断即可） */
   freshCount(items) {
     const base = stateStore.lastVisitMaxId;
     if (!base) return 0;

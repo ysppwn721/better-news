@@ -180,9 +180,9 @@ function applyFilters() {
   if (state.category !== 'all') list = list.filter((i) => i.categoryId === state.category);
   if (state.source) list = list.filter((i) => i.sourceId === state.source);
   if (state.tag) list = list.filter((i) => (i.tags || []).includes(state.tag));
-  if (f.has('unread')) list = list.filter((i) => !stateStore.isRead(i.id));
+  if (f.has('unread')) list = list.filter((i) => !stateStore.isRead(i));
   if (f.has('important')) list = list.filter((i) => i.important);
-  if (f.has('starred')) list = list.filter((i) => stateStore.isStarred(i.id));
+  if (f.has('starred')) list = list.filter((i) => stateStore.isStarred(i));
   if (f.has('college') && state.prioritySourceId) list = list.filter((i) => i.sourceId === state.prioritySourceId);
   if (f.has('deadline')) {
     list = list.filter((i) => {
@@ -235,7 +235,7 @@ function renderCategories() {
     nav.append(b);
   };
 
-  const allUnread = ITEMS.filter((i) => !stateStore.isRead(i.id)).length;
+  const allUnread = ITEMS.filter((i) => !stateStore.isRead(i)).length;
   addItem('全部通知', '全', '#546e7a', ITEMS.length, allUnread,
     state.category === 'all' && !state.source && !state.filters.has('college'),
     () => { resetView(); render(); }, '全部来源的通知');
@@ -243,7 +243,7 @@ function renderCategories() {
   // 优先展示用户所在学院
   if (state.prioritySourceId && INDEX.priorityCollegeName) {
     const myItems = ITEMS.filter((i) => i.sourceId === state.prioritySourceId);
-    const unread = myItems.filter((i) => !stateStore.isRead(i.id)).length;
+    const unread = myItems.filter((i) => !stateStore.isRead(i)).length;
     addItem(`★ ${INDEX.priorityCollegeName}`, '★', '#c2185b', myItems.length, unread,
       state.filters.has('college') && state.category === 'all',
       () => {
@@ -256,7 +256,7 @@ function renderCategories() {
   for (const c of INDEX.categories) {
     if (!c.total) continue;
     const catItems = ITEMS.filter((i) => i.categoryId === c.id);
-    const unread = catItems.filter((i) => !stateStore.isRead(i.id)).length;
+    const unread = catItems.filter((i) => !stateStore.isRead(i)).length;
     addItem(c.name, c.icon, c.color, c.total, unread,
       state.category === c.id && !state.filters.has('college'),
       () => { resetView(); state.category = c.id; render(); }, c.desc);
@@ -299,7 +299,7 @@ function renderSources() {
   if (!list.length) { box.append(el('span', 'hint', '暂无信源')); return; }
 
   for (const s of list) {
-    const unread = ITEMS.filter((i) => i.sourceId === s.id && !stateStore.isRead(i.id)).length;
+    const unread = ITEMS.filter((i) => i.sourceId === s.id && !stateStore.isRead(i)).length;
     const b = el('button', `source-row${state.source === s.id ? ' active' : ''}`);
     const failed = /失败|异常/.test(s.lastStatus || '');
     b.append(el('span', `dot ${failed ? 'err' : (s.itemCount ? 'ok' : 'idle')}`));
@@ -319,7 +319,7 @@ function renderSources() {
 function renderStats() {
   const box = $('#statChips');
   box.textContent = '';
-  const unread = ITEMS.filter((i) => !stateStore.isRead(i.id)).length;
+  const unread = ITEMS.filter((i) => !stateStore.isRead(i)).length;
   const important = ITEMS.filter((i) => i.important).length;
   const soon = (INDEX.deadlines || []).filter((d) => d.daysLeft >= 0).length;
   const chips = [['库内', ITEMS.length, ''], ['未读', unread, unread ? 'alert' : ''], ['重要', important, '']];
@@ -374,8 +374,8 @@ function syncQuickFilters() {
 }
 
 function cardEl(it) {
-  const read = stateStore.isRead(it.id);
-  const starred = stateStore.isStarred(it.id);
+  const read = stateStore.isRead(it);
+  const starred = stateStore.isStarred(it);
   const card = el('div', `card${read ? '' : ' unread'}${it.important ? ' important' : ''}${starred ? ' starred' : ''}`);
   card.dataset.id = it.id;
 
@@ -422,8 +422,8 @@ function cardEl(it) {
   star.title = '收藏';
   star.onclick = (e) => {
     e.stopPropagation();
-    const now = !stateStore.isStarred(it.id);
-    stateStore.setStarred(it.id, now);
+    const now = !stateStore.isStarred(it);
+    stateStore.setStarred(it, now);
     star.textContent = now ? '★' : '☆';
     star.classList.toggle('on', now);
     card.classList.toggle('starred', now);
@@ -432,8 +432,8 @@ function cardEl(it) {
   readBtn.title = read ? '标为未读' : '标为已读';
   readBtn.onclick = (e) => {
     e.stopPropagation();
-    const now = !stateStore.isRead(it.id);
-    stateStore.setRead(it.id, now);
+    const now = !stateStore.isRead(it);
+    stateStore.setRead(it, now);
     card.classList.toggle('unread', !now);
     readBtn.textContent = now ? '○' : '●';
     renderCategories();
@@ -491,8 +491,8 @@ async function openDetail(it) {
   body.textContent = '';
 
   // 标记已读并立即更新卡片样式
-  if (!stateStore.isRead(it.id)) {
-    stateStore.setRead(it.id, true);
+  if (!stateStore.isRead(it)) {
+    stateStore.setRead(it, true);
     document.querySelector(`.card[data-id="${it.id}"]`)?.classList.remove('unread');
     renderCategories();
     renderStats();
@@ -568,10 +568,10 @@ async function openDetail(it) {
 
   $('#btnOpenOrigin').href = it.url;
   const star = $('#btnStar');
-  star.textContent = stateStore.isStarred(it.id) ? '★ 已收藏' : '☆ 收藏';
+  star.textContent = stateStore.isStarred(it) ? '★ 已收藏' : '☆ 收藏';
   star.onclick = () => {
-    const now = !stateStore.isStarred(it.id);
-    stateStore.setStarred(it.id, now);
+    const now = !stateStore.isStarred(it);
+    stateStore.setStarred(it, now);
     star.textContent = now ? '★ 已收藏' : '☆ 收藏';
     document.querySelector(`.card[data-id="${it.id}"]`)?.classList.toggle('starred', now);
     if (state.filters.has('starred')) renderFeed();
@@ -732,8 +732,7 @@ function wireSettings() {
     if (data.isApi) data.saveSettings({ notifyImportantOnly: e.target.checked }).catch(() => {});
   };
   $('#btnClearRead').onclick = () => {
-    stateStore.readIds.clear();
-    local.set('readIds', []);
+    stateStore.clearRead();
     toast('已清除全部已读标记');
     render();
   };
@@ -789,7 +788,7 @@ async function updateSubtitle() {
   const mode = $('#modeIndicator');
   if (data.isApi) {
     if (mode) mode.textContent = '本地服务';
-    const unread = ITEMS.filter((i) => !stateStore.isRead(i.id)).length;
+    const unread = ITEMS.filter((i) => !stateStore.isRead(i)).length;
     $('#brandSub').textContent = st.lastRun
       ? `上次抓取 ${relTime(st.lastRun)} · 库内 ${ITEMS.length} 条 · 未读 ${unread}`
       : `库内 ${ITEMS.length} 条 · 未读 ${unread}`;
@@ -1009,7 +1008,7 @@ function bindEvents() {
 
   $('#btnMarkAllRead').onclick = () => {
     const list = applyFilters();
-    stateStore.markAllRead(list.map((i) => i.id));
+    stateStore.markAllRead(list);
     toast(`已将 ${list.length} 条标为已读`);
     render();
   };
@@ -1103,8 +1102,8 @@ async function refreshItems() {
   await data.loadItems({ force: true });
   ITEMS = data.items.map((it) => ({
     ...it,
-    isRead: stateStore.isRead(it.id),
-    starred: stateStore.isStarred(it.id),
+    isRead: stateStore.isRead(it),
+    starred: stateStore.isStarred(it),
   }));
 }
 

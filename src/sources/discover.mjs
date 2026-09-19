@@ -63,7 +63,7 @@ function contentScore(items) {
  * 从首页 HTML 发现候选栏目页
  * @returns {Promise<Array<{url, name, score, itemCount, latest, contentScore, sampleTitles}>>}
  */
-export async function discoverColumns(client, siteUrl, { maxCandidates = 14, minItems = 4 } = {}) {
+export async function discoverColumns(client, siteUrl, { maxCandidates = 30, minItems = 4 } = {}) {
   const origin = new URL(siteUrl).origin;
   let html;
   try {
@@ -79,7 +79,21 @@ export async function discoverColumns(client, siteUrl, { maxCandidates = 14, min
     const href = attr(m[1], 'href');
     if (!href || /^(javascript:|mailto:|#)/i.test(href)) continue;
     const text = stripTags(m[2]);
-    const s = scoreName(text);
+    let s = scoreName(text);
+    let display = text;
+    // 首页区块里的「MORE / 更多」（如 <H2>通知公告</H2><A href="xwzx/tzgg.htm">MORE</A>）
+    // 本身名字没信息量，但它指向的往往正是最重要的通知栏。
+    // 取该链接前面的同级标题作为它的名字，把「通知公告」这类语义补回来。
+    if (s <= 0 && /^(MORE|更多|more|\.\.\.)$/i.test(text)) {
+      const before = html.slice(Math.max(0, m.index - 400), m.index);
+      const heading = [...before.matchAll(/<h[1-6][^>]*>([\s\S]{2,30}?)<\/h[1-6]>/gi)].pop()
+        || [...before.matchAll(/>([\u4e00-\u9fa5]{2,10})</g)].pop();
+      const guess = heading ? stripTags(heading[1]) : '';
+      if (guess && scoreName(guess) > 0) {
+        s = scoreName(guess) - 1;
+        display = guess;
+      }
+    }
     if (s <= 0) continue;
     let abs;
     try { abs = new URL(href, siteUrl).href; } catch { continue; }
@@ -88,7 +102,7 @@ export async function discoverColumns(client, siteUrl, { maxCandidates = 14, min
     if (isArticleUrl(abs)) continue;              // article.jsp?wbnewsid= 形式的文章页
     if (!/\.(htm|html)$/i.test(abs)) continue;
     const prev = cands.get(abs);
-    if (!prev || prev.score < s) cands.set(abs, { url: abs, name: text, score: s });
+    if (!prev || prev.score < s) cands.set(abs, { url: abs, name: display, score: s });
   }
 
   const ranked = [...cands.values()].sort((a, b) => b.score - a.score).slice(0, maxCandidates);
@@ -124,14 +138,16 @@ const STUDENT_NAME_RE = /学生工作|团学|党群|党建|党务|学工|教务|
 /** 候选栏目的最终排序分 */
 function rankScore({ score, contentScore, latest }) {
   let total = score * 0.35 + contentScore * 100 * 0.45;
-  // 时效性：学院站更新慢，过期栏目必须让位
+  // 时效性：学院站更新慢，过期栏目必须让位。
+  // 权重给得足——「最近真的在更新」是判断栏目是否有用的最强信号，
+  // 曾因低估时效性而漏掉学院最新的通知栏（见 commit 记录）。
   if (latest) {
     const months = (Date.now() - new Date(`${latest}T00:00:00+08:00`).getTime()) / (30 * 86400000);
-    if (months <= 1) total += 22;
-    else if (months <= 3) total += 14;
-    else if (months <= 6) total += 6;
-    else if (months <= 12) total -= 6;
-    else total -= 30; // 一年以上未更新，基本是死栏目
+    if (months <= 1) total += 30;
+    else if (months <= 3) total += 20;
+    else if (months <= 6) total += 8;
+    else if (months <= 12) total -= 8;
+    else total -= 35; // 一年以上未更新，基本是死栏目
   } else {
     total -= 18; // 连日期都解析不出，多半不是标准列表页
   }

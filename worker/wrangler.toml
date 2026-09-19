@@ -1,0 +1,24 @@
+name = "better-news-push"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# 站点地址：Worker 从这个地址读取数据快照来判断是否有新通知。
+# 部署 Cloudflare Pages 后把这里改成实际域名（如 https://better-news.pages.dev）。
+[vars]
+SITE_URL = "https://better-news.pages.dev"
+
+# 每 15 分钟检查一次快照是否有更新
+# 免费版支持 Cron Triggers；注意实际触发可能有几分钟延迟，对通知场景足够
+[triggers]
+crons = ["*/15 * * * *"]
+
+# KV 存储：保存推送订阅与已推送记录
+# 先执行 npx wrangler kv namespace create PUSH_KV，把返回的 id 填到下面
+[[kv_namespaces]]
+binding = "PUSH_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# 密钥（不要写在这里，用 wrangler secret put 设置）：
+#   VAPID_PUBLIC_KEY    VAPID 公钥（base64url）
+#   VAPID_PRIVATE_KEY   VAPID 私钥（base64url）
+#   VAPID_SUBJECT       mailto:你的邮箱

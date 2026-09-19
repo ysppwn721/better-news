@@ -1,0 +1,49 @@
+name: 部署到 GitHub Pages
+
+# 把 public/ 目录（前端 + 数据快照）发布到 GitHub Pages，得到可公网访问的 HTTPS 地址。
+#
+# 说明：
+#   · 站点是纯静态的（前端 + JSON 快照），因此 Pages 可以直接托管，不需要服务端。
+#   · 数据快照由「抓取校园通知并更新数据快照」工作流负责更新并提交到 main；
+#     本工作流在 main 有推送时重新发布，因此两边配合即为「自动更新」。
+#   · 后台推送（Web Push）仍需 Cloudflare Worker，与 Pages 无关。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传站点文件
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: 发布到 Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,13 @@
+# 统一换行符为 LF，避免 Windows 检出时 CRLF 混入仓库
+# （抓取任务在 GitHub Actions 的 Linux 环境跑，混合换行会影响脚本与 diff）
+* text=auto eol=lf
+
+# 数据快照是自动生成的大文件，diff 没有意义，折叠显示以减少仓库噪音
+public/data/items.json -diff linguist-generated
+public/data/index.json -diff linguist-generated
+public/data/detail/*.json -diff linguist-generated
+
+# 二进制资源
+*.png binary
+*.jpg binary
+*.ico binary

@@ -1,0 +1,11 @@
+# wrangler dev 本地开发用的环境变量模板。
+#
+# 使用方式：
+#   1) 复制为 .dev.vars（该文件名已在 .gitignore 中，不会被提交）
+#   2) 生成你自己的密钥并填入：node scripts/gen-vapid.mjs
+#
+# 安全提醒：VAPID 私钥用于向推送服务签名，泄露后他人可冒充你的站点发推送。
+# 因此本模板故意留空，任何真实密钥都不要写进本文件（它会被提交）。
+VAPID_PUBLIC_KEY=""
+VAPID_PRIVATE_KEY=""
+VAPID_SUBJECT="mailto:your-email@example.com"

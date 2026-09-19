@@ -1,0 +1,20 @@
+{
+  "name": "better-news-push",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker：中北大学信息汇总的后台 Web Push 推送",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail",
+    "kv:create": "wrangler kv namespace create PUSH_KV"
+  },
+  "dependencies": {
+    "@block65/webcrypto-web-push": "^2.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

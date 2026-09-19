@@ -1,0 +1,42 @@
+{
+  "name": "better-news",
+  "version": "0.1.0",
+  "description": "中北大学校园信息汇总与提醒 —— 把分散在各部门官网的通知公告汇总到一处，按栏目分栏并提醒",
+  "type": "module",
+  "main": "src/api/server.mjs",
+  "bin": {
+    "bn": "bin/bn.mjs"
+  },
+  "scripts": {
+    "start": "node bin/bn.mjs serve",
+    "serve": "node bin/bn.mjs serve",
+    "fetch": "node bin/bn.mjs fetch",
+    "fetch:all": "node bin/bn.mjs fetch --colleges",
+    "discover": "node bin/bn.mjs discover",
+    "sources": "node bin/bn.mjs sources",
+    "list": "node bin/bn.mjs list",
+    "selftest": "node scripts/selftest.mjs",
+    "export": "node scripts/export-static.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "build:web": "node scripts/export-static.mjs && node scripts/make-icons.mjs",
+    "health": "node scripts/health.mjs",
+    "retag": "node scripts/retag.mjs",
+    "fix-dates": "node scripts/fix-dates.mjs",
+    "repair-titles": "node scripts/repair-titles.mjs",
+    "verify-columns": "node scripts/verify-columns.mjs"
+  },
+  "keywords": [
+    "中北大学",
+    "通知汇总",
+    "爬虫",
+    "校园信息"
+  ],
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.22.3",
+    "node-cron": "^3.0.3"
+  }
+}

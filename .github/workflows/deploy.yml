@@ -1,0 +1,60 @@
+name: 部署到 Cloudflare Pages
+
+# 两种触发方式：
+#   1) push 到 main 分支（含定时抓取任务提交的数据更新）→ 自动部署
+#   2) 在 Actions 页面手动触发
+#
+# 需要在仓库 Secrets 里配置：
+#   CLOUDFLARE_API_TOKEN   —— 权限：Account > Cloudflare Pages > Edit
+#   CLOUDFLARE_ACCOUNT_ID  —— Cloudflare 控制台右侧栏的 Account ID
+#
+# 未配置 Secrets 时本工作流会跳过部署并给出提示，不影响抓取任务。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 检查 Cloudflare 凭据
+        id: check
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::未配置 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID，跳过部署。"
+            echo "请在仓库 Settings → Secrets and variables → Actions 中添加这两个 Secret。"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 安装 Node.js
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 部署到 Cloudflare Pages
+        if: steps.check.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy public
+            --project-name=better-news
+            --branch=main
+            --commit-dirty=true

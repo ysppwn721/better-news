@@ -1,0 +1,82 @@
+{
+  "out": {
+    "steps": [
+      {
+        "k": "viewport",
+        "v": "{\"iw\":390,\"ih\":844,\"dpr\":3,\"mobile\":true}"
+      },
+      {
+        "k": "启动状态",
+        "v": "brandSub=上次抓取 2 小时前 · 库内 2870 条 · 未读 2870 | 卡片=30 | 栏目=9"
+      },
+      {
+        "k": "--- 测试1：点底部「搜索」---",
+        "v": ""
+      },
+      {
+        "k": "点击搜索前后",
+        "v": "{\"focused\":true,\"inputRect\":{\"top\":66,\"bottom\":105,\"h\":39},\"inViewport\":true,\"elementAtCenter\":\"searchInput\",\"mobileNavRect\":{\"top\":791,\"bottom\":844},\"overlaidByNav\":false,\"scrollY\":0}"
+      },
+      {
+        "k": "--- 测试2：移动端搜索 ---",
+        "v": ""
+      },
+      {
+        "k": "搜索「选课」",
+        "v": "{\"n\":8,\"meta\":\"共 8 条，已显示 8 条\",\"empty\":\"\",\"titles\":[\"关于2026-2027学年第1学期通识教育选修课\",\"关于2026-2027学年第一学期美育课程选课的\",\"2026-2027学年第一学期选课通知\"]}"
+      },
+      {
+        "k": "搜索「奖学金」",
+        "v": "{\"n\":30,\"meta\":\"共 148 条，已显示 30 条\",\"empty\":\"\",\"titles\":[\"【奖优助困】机械工程学院2026年本科生单项奖学\",\"艺术学院2026年研究生国家奖学金公示\",\"2025/2026学年硕士研究生综合素质奖学金公\"]}"
+      },
+      {
+        "k": "搜索「综测」",
+        "v": "{\"n\":12,\"meta\":\"共 12 条，已显示 12 条\",\"empty\":\"\",\"titles\":[\"【奖优助困】机械工程学院本科生综合素质测评成绩排\",\"航空宇航学院本科生2025-2026学年综合素质\",\"航空宇航学院本科生2025-2026学年综合素质\"]}"
+      },
+      {
+        "k": "搜索「推免」",
+        "v": "{\"n\":30,\"meta\":\"共 76 条，已显示 30 条\",\"empty\":\"\",\"titles\":[\"关于机械工程学院机器人工程专业2027年推荐免试\",\"关于2027年推荐免试攻读硕士研究生的名单公示（\",\"关于中北大学2027年拟推荐优秀应届本科毕业生免\"]}"
+      },
+      {
+        "k": "搜索「四级」",
+        "v": "{\"n\":2,\"meta\":\"共 2 条，已显示 2 条\",\"empty\":\"\",\"titles\":[\"人文社会科学学院圆满完成2026年全国高等学校英\",\"关于2026年6月份全国大学英语四、六级考试及全\"]}"
+      },
+      {
+        "k": "--- 测试3：点开文章加载正文 ---",
+        "v": ""
+      },
+      {
+        "k": "详情",
+        "v": "{\"title\":\"航空宇航学院2026年秋季关于推荐优秀团员作为入党积极分子的\",\"drawerHidden\":false,\"drawerRect\":{\"w\":390,\"h\":844,\"top\":0},\"loadingText\":null,\"contentLen\":452,\"htmlLen\":567,\"first120\":\"推荐优秀团员作为入党积极分子是党赋予共青团组织的一项光荣任务，为做好学院2026年秋季推荐优秀团员作为入党积极分子工作，现将相关事项安排如下。请各团支部根据《航空宇航学院关于推荐优秀团员作为入党积极分子工作实施细则》（见附件1），完成“推优\"}"
+      },
+      {
+        "k": "结束状态",
+        "v": "brandSub=上次抓取 2 小时前 · 库内 2870 条 · 未读 2870"
+      },
+      {
+        "k": "--- 测试4：计算机学院专栏 ---",
+        "v": ""
+      },
+      {
+        "k": "学院专栏",
+        "v": "{\"before\":30,\"after\":30,\"meta\":\"共 134 条，已显示 30 条\",\"sources\":[\"计算机科学与技术学院·教学科\",\"★ 计算机科学与技术学院\",\"计算机科学与技术学院·教学动态\",\"计算机科学与技术学院·学院新闻\"],\"newest\":[{\"t\":\"特殊情况处理备案表\",\"d\":\"计算机科学与技术学院·教学科·19 小时前☆●↗\"},{\"t\":\"2025/2026学年计算机科学与技术学院综合素质测评公示结\",\"d\":\"★ 计算机科学与技术学院·3 天前☆●↗\"},{\"t\":\"关于开展 2025/2026 学年本科生优秀个人、先进集体及\",\"d\":\"★ 计算机科学与技术学院·4 天前·研究生·新生☆●↗\"},{\"t\":\"关于做好 2026 年本科生国家奖学金评审工作的通知\",\"d\":\"★ 计算机科学与技术学院·5 天前☆●↗\"},{\"t\":\"关于开展 2026/2027 学年家庭经济困难本科学生认定工\",\"d\":\"★ 计算机科学与技术学院·5 天前☆●↗\"}]}"
+      },
+      {
+        "k": "--- 测试5：移动端布局体检 ---",
+        "v": ""
+      },
+      {
+        "k": "溢出与遮挡",
+        "v": "{\"scrollW\":390,\"innerW\":390,\"horizontalOverflow\":false,\"overflowEls\":[{\"tag\":\"ASIDE\",\"cls\":\"sidebar\",\"left\":-306,\"right\":-6},{\"tag\":\"NAV\",\"cls\":\"cat-nav\",\"left\":-294,\"right\":-27},{\"tag\":\"BUTTON\",\"cls\":\"cat-item\",\"left\":-294,\"right\":-27},{\"tag\":\"SPAN\",\"cls\":\"ic\",\"left\":-282,\"right\":-261},{\"tag\":\"SPAN\",\"cls\":\"nm\",\"left\":-252,\"right\":-77},{\"tag\":\"SPAN\",\"cls\":\"ct fresh\",\"left\":-68,\"right\":-39},{\"tag\":\"BUTTON\",\"cls\":\"cat-item active\",\"left\":-294,\"right\":-27},{\"tag\":\"SPAN\",\"cls\":\"ic\",\"left\":-282,\"right\":-261},{\"tag\":\"SPAN\",\"cls\":\"nm\",\"left\":-252,\"right\":-70},{\"tag\":\"SPAN\",\"cls\":\"ct fresh\",\"left\":-61,\"right\":-39}],\"contentPaddingBottom\":\"76px\",\"navTop\":791,\"lastCardBottom\":5774,\"loadMoreTop\":5774,\"loadMoreHidden\":false,\"fontSizes\":{\"cardTitle\":\"14.5px\",\"body\":\"14px\"},\"tapTargets\":[\"21x17\",\"18x17\",\"20x17\"]}"
+      }
+    ],
+    "shot0": "C:\\Users\\Administrator\\Desktop\\better-news\\data\\logs\\api-0-load.png",
+    "shot1": "C:\\Users\\Administrator\\Desktop\\better-news\\data\\logs\\api-1-search-focus.png",
+    "shot2": "C:\\Users\\Administrator\\Desktop\\better-news\\data\\logs\\api-2-search-result.png",
+    "shot3": "C:\\Users\\Administrator\\Desktop\\better-news\\data\\logs\\api-3-detail.png",
+    "shot4": "C:\\Users\\Administrator\\Desktop\\better-news\\data\\logs\\api-4-college.png",
+    "shot5": "C:\\Users\\Administrator\\Desktop\\better-news\\data\\logs\\api-5-layout-bottom.png",
+    "shot6": "C:\\Users\\Administrator\\Desktop\\better-news\\data\\logs\\api-6-scrolled-bottom.png"
+  },
+  "errors": []
+}

@@ -106,9 +106,22 @@ const checks = [
   ['关注面板入口（底栏 watch）', /data-target="watch"|btnWatch/, indexHtml],
   ['刷新按钮状态单一来源（修 bug）', /syncFetchButton/, appJs],
   ['不再把「已在抓取中」当错误弹提示', /已在抓取中，稍候即可/, appJs],
-  // toggle('spin') 只允许出现在 syncFetchButton 一处——两处各管一摊正是
-  // 「点刷新后一直转」的成因。用 expectCount 精确断言出现次数。
-  ['spin 类只在一处设置（防回归）', /classList\.toggle\('spin'/g, appJs, false, 1],
+  // 防回归：spin 类**只能**由 syncFetchButton 用 toggle('spin', 状态) 设置。
+  //
+  // 真正要抓的缺陷签名是「不带状态参数」的写法：
+  //     classList.add('spin')        ← 旧代码：点击处理自己加
+  //     classList.remove('spin')     ← 旧代码：updateSubtitle 自己清
+  // 正确写法一定带第二参数：classList.toggle('spin', spinning)。
+  //
+  // 所以正则写成 `add|remove` + 左括号后**紧跟 sp|'spin'**：
+  //   · 注释里作为反例写的 `btn.classList.add('spin')` 同样会被抓到——
+  //     这是刻意的，正文里不该再出现这种写法（已改成「直接加 spin」）；
+  //   · 但 `classList.toggle('spin', ...)` 不会被误伤。
+  // 第一版曾用 /toggle\('spin'/ 计数断言，结果把两个按钮的合法调用都算进去，
+  // 把已修好的包判成没修——这类「断言写错」比漏测更费时间。
+  ['spin 类不再被手动 add/remove', /classList\.(?:add|remove)\((?:sp|'spin')/, appJs, true],
+  ['刷新按钮由 toggle(状态) 驱动', /classList\.toggle\('spin',\s*spinning\)/, appJs],
+  ['「检查更新」按钮同样由状态驱动', /classList\.toggle\('spin',\s*!!refreshingSnapshot\)/, appJs],
 ];
 
 let stale = 0;

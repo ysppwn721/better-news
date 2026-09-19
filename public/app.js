@@ -1079,8 +1079,8 @@ function wireSettings() {
  * 刷新按钮的转动状态只有一个来源：**服务端/本机真实的抓取状态**。
  *
  * 这是一个真实 bug 的修法。以前按钮的 spin 类由两处各自设置：
- *   · 点击处理里 btn.classList.add('spin')
- *   · updateSubtitle() 里「如果 st.fetching 就 add('spin')」
+ *   · 点击处理里直接加 spin
+ *   · updateSubtitle() 里「如果 st.fetching 就加 spin」
  * 两处互相打架，且都只看「有没有在抓」，不看「用户点的那次有没有被接受」。
  * 于是：进页面时首次抓取还在跑（手机上 1~2 分钟），用户点「刷新」→
  * triggerFetch 抛「正在抓取中」→ 点击处理 remove('spin') 并弹错误提示，
@@ -1093,12 +1093,25 @@ function wireSettings() {
  */
 let fetchWatchTimer = null;
 
+/** 最近一次已知的抓取状态——syncFetchButton() 不传参时用它 */
+let lastFetchStatus = null;
+
+/**
+ * 静态模式下「检查更新」是否正在进行。
+ * 与 fetchWatchTimer 一样，这是一个**状态**，不是对按钮的直接操作——
+ * 按钮的外观永远由 syncFetchButton() 从状态派生，避免多处各管一摊。
+ */
+let refreshingSnapshot = false;
+
 function syncFetchButton(status) {
   const btn = $('#btnFetch');
   const btnDisabled = $('#btnFetchDisabled');
-  const spinning = !!status?.fetching;
+  // 两个按钮分别对应两种模式：抓取中 → 「刷新」转；检查快照中 → 「更新」转。
+  // 传 status 时以它为准；不传（本地触发）时用最近一次已知状态。
+  if (status) lastFetchStatus = status;
+  const spinning = !!lastFetchStatus?.fetching;
   if (btn) btn.classList.toggle('spin', spinning);
-  if (btnDisabled) btnDisabled.classList.toggle('spin', spinning);
+  if (btnDisabled) btnDisabled.classList.toggle('spin', !!refreshingSnapshot);
 }
 
 /** 抓取过程中的进度文案（让「按钮在转」有解释，而不是让人干等） */
@@ -1565,16 +1578,21 @@ function bindEvents() {
   };
 
   $('#btnFetch').onclick = triggerFetch;
-  // 静态模式：按钮改为「检查更新」——重新拉取快照（绕过本地缓存），而不是触发服务端抓取
+  // 静态模式：按钮改为「检查更新」——重新拉取快照（绕过本地缓存），而不是触发服务端抓取。
+  //
+  // ⚠ 这里也踩过同一个坑：按钮的 spin 类不能由点击处理自己 add/remove，
+  //   否则 updateSubtitle() 里的 syncFetchButton 会在下一秒把它清掉，
+  //   或者反过来把它加上（状态与操作不一致 → 按钮「一直转」或「点了没反应」）。
+  //   统一做法：点击只改 refreshingSnapshot 这个**状态**，转动由 syncFetchButton 派生。
   $('#btnFetchDisabled').onclick = async () => {
-    const btn = $('#btnFetchDisabled');
-    btn.classList.add('spin');
+    if (refreshingSnapshot) { toast('正在检查更新，请稍候'); return; }
+    refreshingSnapshot = true;
+    syncFetchButton();
     try {
       const res = await fetch('./data/index.json', { cache: 'no-store' });
       const fresh = await res.json();
       if (fresh.version === INDEX.version) {
         toast('已是最新数据');
-        btn.classList.remove('spin');
         return;
       }
       await data.init();
@@ -1588,7 +1606,8 @@ function bindEvents() {
     } catch (e) {
       toast(`检查更新失败：${e.message}`);
     } finally {
-      btn.classList.remove('spin');
+      refreshingSnapshot = false;
+      syncFetchButton();
     }
   };
 

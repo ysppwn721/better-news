@@ -48,8 +48,26 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: 安装 Android SDK
-        uses: android-actions/setup-android@v3
+      # 不用 android-actions/setup-android：该 action 会执行 `sdkmanager tools`，
+      # 而 `tools` 包已被 Google 从 SDK 仓库移除，导致 “Failed to find package 'tools'” 直接失败。
+      # GitHub 的 ubuntu runner 本就预装了 Android SDK，直接指过去即可。
+      - name: 配置 Android SDK（使用 runner 预装版本）
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
+          ls "$SDK" || true
+
+      - name: 安装所需的 SDK 组件
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-36" "build-tools;36.0.0" "platform-tools" \
+            > /dev/null
+          echo "✓ SDK 组件已安装"
 
       - name: 安装根目录依赖（解析/信源模块）
         run: npm ci

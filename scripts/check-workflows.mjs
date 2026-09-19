@@ -52,8 +52,17 @@ for (const f of files) {
       problems.push('缺少 jobs 或 jobs 为空');
     }
 
-    // 中文全角冒号常被误写成 YAML 语法（这是本项目踩过的坑）
-    const suspicious = raw.split('\n')
+    // 中文全角冒号常被误写成 YAML 语法（这是本项目踩过的坑）。
+    // 但 heredoc（cat <<'EOF' ... EOF）里的内容是 shell 文本，不受 YAML 解析，
+    // 必须先剥掉再检查，否则会误报。
+    const withoutHeredoc = [];
+    let inHeredoc = false;
+    for (const l of raw.split('\n')) {
+      if (/<<-?\s*'?[A-Z_]+'?/.test(l)) { inHeredoc = true; withoutHeredoc.push(''); continue; }
+      if (inHeredoc && /^\s*[A-Z_]+\s*$/.test(l)) { inHeredoc = false; withoutHeredoc.push(''); continue; }
+      withoutHeredoc.push(inHeredoc ? '' : l);
+    }
+    const suspicious = withoutHeredoc
       .map((l, i) => ({ l, n: i + 1 }))
       .filter(({ l }) => /^\s*[^\s#][^:]*：/.test(l) && !l.trim().startsWith('#'));
     if (suspicious.length) {

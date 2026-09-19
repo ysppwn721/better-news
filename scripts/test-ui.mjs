@@ -144,29 +144,28 @@ async function runMode(mode) {
   //   连续写「困难认定」在标题里并不存在，按标题搜索本就该用分词。
   const cases = ['奖学金', '选课', '推免', '考试', '国家奖学金', '党课', '奖学金 公示', '困难 认定'];
   const shown = {};
+  // 必须用与应用**完全相同**的匹配逻辑判定命中：
+  // 应用会把「推免」扩展为「推荐免试」等同义词（校园口语），这是正确行为，
+  // 测试若只用 title.includes(kw) 会把这些正确命中误判为不相关。
+  const full = (await import('./store.js')).data.items;
+  const aliases = await import('./aliases.mjs');
   for (const kw of cases) {
     input.value = kw;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     await new Promise(r => setTimeout(r, 900));
     const titles = cards().map(titleOf);
     shown[kw] = titles.slice(0, 8);
-    const terms = kw.split(/\\s+/).filter(Boolean);
-    // 用**完整标题**判断（卡片上的标题被 CSS 截断，不能用它判断是否命中）
-    const full = await (async () => {
-      const m = await import('./store.js');
-      return m.data.items;
-    })();
-    const shownFull = cards().map(c => {
-      const t = (c.querySelector('.card-title')?.textContent || '');
-      const hit = full.find(x => x.title === t || x.title.startsWith(t));
+    // 卡片标题被 CSS 截断，用前缀匹配取回完整标题
+    const shownFull = titles.map((t) => {
+      const hit = full.find((x) => x.title === t || x.title.startsWith(t));
       return hit ? hit.title : t;
     });
-    const titleHit = shownFull.filter(t => terms.every(x => t.includes(x))).length;
+    const titleHit = shownFull.filter((t) => aliases.titleMatches(t, kw)).length;
     const meta = document.getElementById('listMeta')?.textContent || '';
     const diag = 'cat=' + (window.__bnState?.category || '?')
       + ' filters=[' + [...(window.__bnState?.filters || [])].join(',') + ']';
     rec('搜索[' + kw + ']', cards().length + ' 张 | ' + meta
-      + ' | 标题全命中=' + titleHit + '/' + shownFull.length
+      + ' | 标题命中=' + titleHit + '/' + shownFull.length
       + ' | ' + diag
       + ' | ' + titles.slice(0, 3).map(t => t.slice(0, 18)).join(' / '));
   }
@@ -253,11 +252,11 @@ for (const mode of modes) {
     check('手机端选择栏目后抽屉收起', v.includes('已收起'), v);
   }
 
-  // 搜索：按标题匹配。每个词都必须出现在标题里——这是用户明确要求的语义。
+  // 搜索：按标题匹配（含校园口语别名）。每个词都必须出现。
   for (const kw of ['奖学金', '选课', '推免', '考试', '国家奖学金', '党课', '奖学金 公示', '困难 认定']) {
     const v = steps[`搜索[${kw}]`] || '';
     const metaTotal = parseInt((v.match(/共 (\d+) 条/) || [])[1] || '0', 10);
-    const hitPart = (v.match(/标题全命中=(\d+)\/(\d+)/) || []);
+    const hitPart = (v.match(/标题命中=(\d+)\/(\d+)/) || []);
     const hit = parseInt(hitPart[1] || '0', 10);
     const total = parseInt(hitPart[2] || '0', 10);
     check(`${mode} 搜索「${kw}」有结果`, metaTotal > 0, `命中 ${metaTotal} 条`);

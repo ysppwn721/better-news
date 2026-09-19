@@ -15,4 +15,6 @@ export { parseList, parseDetail, parseDate, isRestrictedPage, articleIds, isArti
 export { analyze, makeSummary, inferSubcategory, TAG_RULES, AUDIENCE_RULES } from '../../src/core/keywords.mjs';
 export { extractDeadlines, daysUntil, daysLeftText } from '../../src/core/deadline.mjs';
 export { CATEGORIES, CATEGORY_MAP, COLLEGES, BUILTIN_SOURCES, collegeSourcesOnly, hintCategory } from '../../src/sources/registry.mjs';
+export { titleMatches, expandQuery, SEARCH_ALIASES } from '../../src/core/aliases.mjs';
+export { collectListPages, nextPageUrl, totalPages } from '../../src/sources/paging.mjs';
 export { default as SOURCES } from './generated/sources.json';

@@ -10,6 +10,7 @@
  *  5) 注册 service worker，支持离线打开与「添加到主屏幕」。
  */
 import { data, stateStore, local } from './store.js';
+import { titleMatches } from './aliases.mjs';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -252,24 +253,21 @@ function applyFilters() {
 }
 
 /**
- * 搜索匹配（按标题搜索）。
+ * 搜索匹配（按标题搜索，含校园口语别名）。
  *
- * 语义（按用户明确要求）：
+ * 语义：
  *   · 只看标题
  *   · 多个关键词以空格分隔，**每个词都要出现在标题里**（顺序不限）
- *     例：「奖学金 公示」= 标题同时含这两个词
+ *   · 关键词会做同义词扩展：搜「综测」也能命中标题写着「综合素质测评」的通知
+ *     （学生用口语缩写、学校写公文全称，这是最常见的搜不到原因）
  *
- * 为什么不做正文/摘要匹配：曾经把整篇正文纳入并加模糊兜底，
- * 结果是搜什么都出一大堆、看不出关联，用户直接反馈「搜索几乎没用」。
- * 纯标题匹配的结果集小但条条对得上，符合「按标题找通知」的实际用法。
+ * 为什么不做正文匹配：曾把整篇正文纳入并加模糊兜底，
+ * 结果搜什么都出一大堆、条条对不上，被用户否掉。宁可少而准。
  *
  * 返回 1 表示命中（统一分值，排序仍按发布时间倒序）。
  */
 function matchScore(item, q) {
-  const terms = q.split(/\s+/).filter(Boolean);
-  if (!terms.length) return 0;
-  const title = (item.title || '').toLowerCase();
-  return terms.every((t) => title.includes(t)) ? 1 : 0;
+  return titleMatches(item.title, q) ? 1 : 0;
 }
 
 // ============================================================

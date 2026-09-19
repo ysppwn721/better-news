@@ -4,7 +4,8 @@
 import { HttpClient } from '../core/http.mjs';
 import { log } from '../core/log.mjs';
 import { analyze, inferSubcategory, makeSummary } from '../core/keywords.mjs';
-import { parseDetail, parseList } from '../sources/cms.mjs';
+import { parseDetail } from '../sources/cms.mjs';
+import { collectListPages } from '../sources/paging.mjs';
 import { CATEGORY_MAP, hintCategory } from '../sources/registry.mjs';
 
 /**
@@ -62,18 +63,28 @@ export class Fetcher {
     this.store = store;
     this.client = opts.client || new HttpClient({ timeoutMs: opts.timeoutMs ?? 20000 });
     this.concurrency = opts.concurrency ?? 4;
-    this.enrichLimit = opts.enrichLimit ?? 25; // 每个信源每次最多抓多少篇详情
+    this.enrichLimit = opts.enrichLimit ?? 40; // 每个信源每次最多抓多少篇详情
+    // 整轮详情抓取的总预算。
+    //
+    // 为什么需要总预算：翻页改为按时间截止后，单轮新增条目会到数百上千条，
+    // 若按「每信源 40 条」放开，一轮就是三千多次详情请求，本机定时任务
+    // 会被掐断。列表信息（标题+日期+链接）已经足够搜索与列表展示，
+    // 正文只是让卡片显示摘要、并让「截止提醒」能读到报名截止日期，
+    // 因此按总量封顶、按发布时间从新到旧补，多跑几轮自然补齐。
+    this.enrichTotal = opts.enrichTotal ?? 1200;
+    this.enrichedSoFar = 0;
     this.onProgress = opts.onProgress || null;
   }
 
   /**
    * 抓取单个信源
    * @param {object} source {id,name,categoryId,listUrl,pageTemplate,maxPages}
-   * @param {{pages?: number, maxItems?: number, enrich?: boolean}} [opts]
+   * @param {{pages?: number, sinceMonths?: number, maxItems?: number, enrich?: boolean}} [opts]
    */
   async fetchSource(source, opts = {}) {
-    const pages = Math.min(opts.pages ?? source.maxPages ?? 1, 10);
-    const maxItems = opts.maxItems ?? 80;
+    const maxPages = Math.min(opts.pages ?? 12, 40);
+    const sinceMonths = opts.sinceMonths ?? 6;
+    const maxItems = opts.maxItems ?? 300;
     const enrich = opts.enrich !== false;
     const listUrl = source.listUrl;
 
@@ -87,34 +98,22 @@ export class Fetcher {
       listUrl: source.listUrl, builtin: true, sort: source.sort ?? 100,
     });
 
-    // 1) 收集列表条目（含翻页）
-    const collected = new Map();
-    let firstError = null;
-    for (let p = 1; p <= pages; p++) {
-      const url = p === 1
-        ? listUrl
-        : (source.pageTemplate
-          ? source.pageTemplate.replace('{page}', p)
-          : derivePageUrl(listUrl, p));
-      if (!url) break;
-      try {
-        const { html } = await this.client.fetchHtml(url);
-        const items = parseList(html, url);
-        if (!items.length) break;
-        for (const it of items) if (!collected.has(it.url)) collected.set(it.url, it);
-      } catch (e) {
-        if (p === 1) firstError = e.message;
-        log.debug(`列表翻页失败 ${url}: ${e.message}`);
-        break;
-      }
-    }
+    // 1) 收集列表条目（按时间截止翻页；翻页规则与 App 端共用一份实现）
+    //
+    // 曾经这里用 `栏目/2.htm` 推导页码，而本站 CMS 页码是倒序的——
+    // 第 2 页直接跳到 2017 年并停止翻页，网页端因此比 App 端少了半年以上的通知。
+    const listing = await collectListPages(
+      async (u) => (await this.client.fetchHtml(u)).html,
+      { listUrl, maxPages, sinceMonths },
+    );
+    const firstError = listing.firstError;
 
-    if (!collected.size) {
+    if (!listing.items.length) {
       this.store.markSourceFetch(source.id, { status: `失败: ${firstError || '无条目'}`, error: firstError ? 1 : 0 });
       return { sourceId: source.id, ok: false, error: firstError || '列表页无条目', fetched: 0, inserted: 0 };
     }
 
-    let all = [...collected.values()].slice(0, maxItems);
+    let all = listing.items.slice(0, maxItems);
 
     // 同一通知常被发在多个栏目下（产生多个 URL），按标题去重后再入库
     const deduped = dedupeByTitle(all);
@@ -123,45 +122,67 @@ export class Fetcher {
       log.debug(`[${source.name}] 标题去重移除 ${deduped.removed} 条跨栏目重复`);
     }
 
-    // 2) 增量：已入库且未过期的条目直接跳过详情抓取
+    // 已在库的条目（用于判断「新条目」与「有没有正文」）
     const known = new Map();
     for (const it of all) {
       const row = this.store.findItemByUrl(it.url);
       if (row) known.set(it.url, row);
     }
 
-    const needDetail = enrich ? all.slice(0, this.enrichLimit) : [];
-    const targets = needDetail.filter((it) => !known.has(it.url));
-    // 已知条目中时间最近的少量几条复查一次（应对「先发后改」的补充通知）
-    // 受限条目（需校内网）不复查——重试也不会成功，只会浪费请求。
-    const recheck = needDetail
-      .filter((it) => known.has(it.url) && !known.get(it.url).restricted)
-      .slice(0, 3);
-    const toFetch = [...targets, ...recheck];
+    // 2) 挑出「还需要抓正文」的条目
+    //
+    // ⚠ 这里曾经是 `all.slice(0, enrichLimit).filter(未入库)`——只给**新条目**抓正文。
+    //   后果：一轮抓完目录后，所有条目都已在库，此后每轮 targets 都是空的，
+    //   那些「只抓到列表、没抓到正文」的条目永远补不上正文（实测正文率卡在 51%），
+    //   依赖正文的「截止提醒」和卡片摘要随之长期缺失。
+    //   现在把「已入库但没有正文」也纳入，并按发布时间从新到旧推进，
+    //   多跑几轮就能把正文补齐。
+    const needsBody = (it) => {
+      const row = known.get(it.url);
+      if (!row) return true;                    // 新条目
+      if (row.restricted) return false;         // 校内受限页重试没有意义
+      return !(row.body_text || '').length;     // 已入库但正文还是空的
+    };
+    const targets = enrich ? all.filter(needsBody).slice(0, this.enrichLimit) : [];
+    // 已知且已有正文的条目里复查最前面几条，应对「先发后改」的补充通知
+    const recheck = enrich
+      ? all.filter((it) => known.has(it.url) && !needsBody(it)).slice(0, 2)
+      : [];
+    let toFetch = [...targets, ...recheck];
+
+    // 总预算封顶：本轮剩余额度用完后只抓列表，不再抓详情
+    const left = Math.max(0, this.enrichTotal - this.enrichedSoFar);
+    if (toFetch.length > left) toFetch = toFetch.slice(0, left);
+    this.enrichedSoFar += toFetch.length;
 
     log.info(`[${source.name}] 列表 ${all.length} 条，待抓详情 ${targets.length} 条（另有 ${known.size} 条已入库）`);
 
-    // 3) 并发抓详情
+    // 3) 并发抓详情（只处理配额内的条目，其余条目照样入库）
     let done = 0;
-    const details = await pooled(toFetch, this.concurrency, async (it) => {
+    let detailFailed = 0;
+    const detailByUrl = new Map();
+    await pooled(toFetch, this.concurrency, async (it) => {
       try {
         const { html, url } = await this.client.fetchHtml(it.url);
         const d = parseDetail(html, url || it.url, { title: it.title, date: it.date });
         done++;
         this.onProgress?.({ source: source.name, done, total: toFetch.length, title: d.title || it.title });
-        return { list: it, detail: d };
+        detailByUrl.set(it.url, d);
       } catch (e) {
-        // 详情失败不致命：保留列表页已有的标题与日期
-        return { list: it, detail: null, error: e.message };
+        // 详情失败不致命：列表页已有的标题与日期照样入库
+        detailFailed++;
+        detailByUrl.set(it.url, null);
       }
     });
 
-    // 4) 组装入条
-    let inserted = 0, updated = 0, failed = 0, restricted = 0;
-    for (const r of details) {
-      if (!r || r.__error) { failed++; continue; }
-      const { list: li, detail } = r;
-      if (r.error) failed++;
+    // 4) 组装入库：**列表里的每一条都要入库**，详情只是补充。
+    //
+    // ⚠ 这里曾经只遍历抓过详情的条目（toFetch），于是每个信源实际入库的是
+    //   「前 enrichLimit 条」——25 条以外的通知被静默丢掉。翻页明明抓回了
+    //   学院 50 条通知，库里却只有 25 条，学生看到的就是「新闻不全」。
+    let inserted = 0, updated = 0, restricted = 0;
+    for (const li of all) {
+      const detail = detailByUrl.get(li.url) || null;
       if (detail?.restricted) restricted++;
       // 标题优先用详情页，但受限页/空标题时回落到列表页标题（绝不用「系统提示」这类错误页标题）
       const title = (detail?.title && !/^(系统提示|提示信息|错误)$/.test(detail.title))
@@ -207,12 +228,12 @@ export class Fetcher {
     const listOnly = all.length - toFetch.length;
     const status = firstError
       ? `部分成功（${firstError.slice(0, 40)}）`
-      : `成功 新增${inserted} 更新${updated} 复用${listOnly}${restricted ? ` 校内受限${restricted}` : ''}`;
-    this.store.markSourceFetch(source.id, { status, count: inserted, error: failed });
+      : `成功 新增${inserted} 更新${updated} 仅列表${listOnly}${restricted ? ` 校内受限${restricted}` : ''}`;
+    this.store.markSourceFetch(source.id, { status, count: inserted, error: detailFailed });
 
     return {
       sourceId: source.id, sourceName: source.name, ok: true,
-      fetched: all.length, inserted, updated, failed, restricted,
+      fetched: all.length, inserted, updated, failed: detailFailed, restricted,
     };
   }
 
@@ -223,6 +244,8 @@ export class Fetcher {
   async fetchAll(sources, opts = {}) {
     const started = Date.now();
     const results = [];
+    if (opts.enrichTotal != null) this.enrichTotal = opts.enrichTotal;
+    this.enrichedSoFar = 0; // 每轮重新计数，预算不跨轮累计
     for (const s of sources) {
       if (opts.signal?.aborted) break;
       try {
@@ -240,7 +263,13 @@ export class Fetcher {
   }
 }
 
-/** 列表页翻页 URL 推导：/index/tzgg.htm → /index/tzgg/2.htm */
+/**
+ * 列表页翻页 URL 推导：/index/tzgg.htm → /index/tzgg/2.htm
+ *
+ * ⚠ 已废弃（deprecated）：中北大学的 CMS 页码是**倒序**的，`/2.htm` 指向的是
+ * 最老一页而不是第 2 页。翻页一律走 src/sources/paging.mjs 的 collectListPages
+ * （从页面「下页」链接读真实地址）。此函数仅为兼容旧脚本保留。
+ */
 export function derivePageUrl(listUrl, page) {
   const m = listUrl.match(/^(.*?)(\d*)\.(htm|html)$/i);
   if (!m) return null;

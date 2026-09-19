@@ -85,7 +85,7 @@ log(`      app-store.mjs ${(readFileSync(resolve(WWW, 'app-store.mjs')).length /
 
 log('[4/4] 复制网页前端…');
 const PUBLIC = resolve(ROOT, 'public');
-for (const f of ['style.css', 'sw.js', 'manifest.webmanifest']) {
+for (const f of ['style.css', 'sw.js', 'manifest.webmanifest', 'aliases.mjs']) {
   cpSync(resolve(PUBLIC, f), resolve(WWW, f));
 }
 for (const d of ['icons']) {

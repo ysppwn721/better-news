@@ -13,8 +13,45 @@
  *
  * 实测延迟：本机到学校站点中位 681ms。49 个信源并发 6 路约 8~15 秒。
  */
-import { parseList, parseDetail, analyze, makeSummary, inferSubcategory, hintCategory, CATEGORY_MAP } from '../shared/entry.mjs';
+import { parseDetail, analyze, makeSummary, inferSubcategory, hintCategory, CATEGORY_MAP, collectListPages } from '../shared/entry.mjs';
 import { db } from './storage.mjs';
+
+const UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/122 Mobile Safari/537.36';
+
+/**
+ * 带退避重试的抓取。
+ *
+ * 为什么必须重试：校园站点偶发超时是常态——实测一轮 100 个信源里会有十几个
+ * 瞬时失败。此前一旦失败就 break 掉整个信源的翻页，整栏通知凭空消失，
+ * 学生看到的就是「新闻不全」。失败重试 3 次可把瞬时失败压到接近 0。
+ *
+ * 404/403 这类确定性错误不重试——重试也不会成功，只浪费流量和电。
+ */
+async function fetchText(url, { attempts = 3, timeoutMs = 20000 } = {}) {
+  let lastErr = new Error('抓取失败');
+  for (let i = 0; i < attempts; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 500 * i));
+    const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ac ? setTimeout(() => ac.abort(), timeoutMs) : null;
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': UA, 'Accept-Language': 'zh-CN,zh;q=0.9' },
+        signal: ac ? ac.signal : undefined,
+      });
+      if (!res.ok) {
+        lastErr = new Error(`HTTP ${res.status}`);
+        if ([403, 404, 410, 451].includes(res.status)) break;
+        continue;
+      }
+      return await res.text();
+    } catch (e) {
+      lastErr = e.name === 'AbortError' ? new Error(`超时 (${timeoutMs}ms)`) : e;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+  throw lastErr;
+}
 
 /** 简易并发池 */
 async function pooled(items, limit, worker) {
@@ -57,41 +94,23 @@ function dedupeByTitle(items) {
 const isDesktop = () => typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform;
 
 /**
- * 抓取一个信源的列表页（含翻页），返回条目数组。
- * @param {object} source
- * @param {number} pages 最多翻几页
+ * 抓取一个信源的列表页（按时间截止翻页），返回条目数组。
+ *
+ * 翻页规则（倒序页码、以「下页」链接为准）与容错约定集中在 src/sources/paging.mjs，
+ * 由 Node 抓取（网页快照）与 App 端共用同一份实现，避免两边行为分叉。
+ *
+ * @param {object} source 信源配置
+ * @param {{maxPages?: number, sinceMonths?: number}} [opts]
  */
-export async function fetchSourceList(source, pages = 1) {
-  const collected = new Map();
-  const maxPages = Math.min(pages, source.maxPages || 1, 5);
-
-  for (let p = 1; p <= maxPages; p++) {
-    let url = source.listUrl;
-    if (p > 1) {
-      if (source.pageTemplate) url = source.pageTemplate.replace('{page}', p);
-      else {
-        const m = source.listUrl.match(/^(.*?)(\d*)\.(htm|html)$/i);
-        if (!m) break;
-        url = `${m[1].replace(/\/\d+$/, '')}${p}.${m[3]}`;
-      }
-    }
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/122 Mobile Safari/537.36',
-          'Accept-Language': 'zh-CN,zh;q=0.9',
-        },
-      });
-      if (!res.ok) break;
-      const html = await res.text();
-      const items = parseList(html, url);
-      if (!items.length) break;
-      for (const it of items) if (!collected.has(it.url)) collected.set(it.url, it);
-    } catch {
-      break; // 单页失败不影响其它信源
-    }
-  }
-  return [...collected.values()];
+export async function fetchSourceList(source, opts = {}) {
+  const r = await collectListPages((u) => fetchText(u), {
+    listUrl: source.listUrl,
+    maxPages: Math.min(opts.maxPages ?? source.maxPages ?? 10, 40),
+    sinceMonths: opts.sinceMonths ?? 6,
+  });
+  // 第 1 页就失败 → 抛出让调用方记为「失败信源」，而不是悄悄当成空栏目
+  if (r.firstError && !r.items.length) throw new Error(r.firstError);
+  return r.items;
 }
 
 /**
@@ -99,14 +118,7 @@ export async function fetchSourceList(source, pages = 1) {
  */
 export async function fetchDetail(url, fallback = {}) {
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/122 Mobile Safari/537.36',
-        'Accept-Language': 'zh-CN,zh;q=0.9',
-      },
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
+    const html = await fetchText(url);
     return parseDetail(html, url, fallback);
   } catch {
     return null;
@@ -116,48 +128,70 @@ export async function fetchDetail(url, fallback = {}) {
 /**
  * 抓取全部信源并写入本地库。
  *
+ * 分两阶段，避免历史缺陷：
+ *   阶段一：抓列表（含翻页）→ 全量去重 → 入库。此时界面立刻有完整目录。
+ *   阶段二（可选）：为「还没有正文」的条目补正文，受 budget 配额限制。
+ *
+ * 为什么必须分开：此前把「抓详情」和「抓列表」混在一起，
+ * 结果只给极少数条目抓了正文（实测 1224 条里只有 23 条有正文），
+ * 既搜不到正文内容，详情页也常常空白。
+ * 分开之后，目录始终完整，正文按时间倒序逐步补齐，不会拖慢首次可用时间。
+ *
  * @param {object} opts
  * @param {Array} opts.sources 信源清单
  * @param {number} opts.concurrency 并发数
+ * @param {number} opts.sinceMonths 抓取最近几个月的内容（按时间截止翻页）
+ * @param {number} opts.maxPages 每信源最多翻几页（安全上限）
+ * @param {number} opts.bodyBudget 本轮最多补多少条正文（0 = 不补）
  * @param {(p:object)=>void} opts.onProgress 进度回调
- * @param {boolean} opts.fetchDetails 是否为每条新通知抓正文（默认 false，按需抓）
- * @returns {Promise<{inserted:number, updated:number, sources:number, failed:string[], elapsed:number}>}
  */
-export async function runScrape({ sources, concurrency = 6, onProgress, fetchDetails = false, detailLimit = 10 } = {}) {
+export async function runScrape({
+  sources,
+  concurrency = 6,
+  sinceMonths = 6,
+  maxPages = 10,
+  bodyBudget = 0,
+  onProgress,
+} = {}) {
   const started = Date.now();
-  const existing = new Set((await db.allItems()).map((i) => i.url));
   const failed = [];
-  let inserted = 0;
-  let updated = 0;
 
+  // ---------- 阶段一：列表 ----------
   let done = 0;
   const listResults = await pooled(sources, concurrency, async (src) => {
-    const items = await fetchSourceList(src, 1);
+    let items = [];
+    let error = null;
+    // 单个信源失败不能拖垮整轮抓取：记下失败原因，其它信源继续
+    try {
+      items = await fetchSourceList(src, { maxPages, sinceMonths });
+    } catch (e) {
+      error = e.message;
+    }
     done++;
     onProgress?.({ phase: 'list', done, total: sources.length, source: src.name, found: items.length });
-    if (!items.length) failed.push(src.name);
-    return { src, items };
+    if (error || !items.length) failed.push(src.name);
+    return { src, items, error };
   });
 
-  // 组装条目
+  const existing = new Set((await db.allItems()).map((i) => i.url));
   const toSave = [];
+  let inserted = 0;
   for (const r of listResults) {
-    if (!r || r.__error) continue;
+    // 抛错的信源此前被静默跳过，界面上看不出是哪一栏没抓到；
+    // 现在统一记入 failed，方便排查「哪来的新闻不全」。
+    if (!r || r.__error) { if (r?.src) failed.push(r.src.name); continue; }
     const { src, items } = r;
     for (const li of items) {
-      const title = li.title;
-      const blob = title;
-      const { tags, audiences, important } = analyze(title, '');
+      const { tags, audiences, important } = analyze(li.title, '');
       let categoryId = src.categoryId;
       if (categoryId === 'college' || categoryId === 'other') {
-        const hinted = hintCategory(blob, categoryId);
+        const hinted = hintCategory(li.title, categoryId);
         if (hinted !== categoryId) categoryId = hinted;
       }
-      const isNew = !existing.has(li.url);
-      if (isNew) inserted++;
+      if (!existing.has(li.url)) inserted++;
       toSave.push({
         url: li.url,
-        title,
+        title: li.title,
         summary: '',
         bodyText: '',
         bodyHtml: '',
@@ -167,44 +201,65 @@ export async function runScrape({ sources, concurrency = 6, onProgress, fetchDet
         sourceName: src.name,
         categoryId,
         categoryName: CATEGORY_MAP[categoryId]?.name || '其他',
-        subcategory: inferSubcategory(title),
+        subcategory: inferSubcategory(li.title),
         tags: [...new Set([...tags, ...audiences])],
         important,
         restricted: false,
         firstSeen: new Date().toISOString(),
-        _isNew: isNew,
       });
     }
   }
 
-  // 可选：为新条目抓正文（比串行快得多，但仍受学校站点压力限制）
-  if (fetchDetails && toSave.length) {
-    const fresh = toSave.filter((x) => x._isNew).slice(0, detailLimit * 4);
+  const unique = dedupeByTitle(toSave);
+  await db.upsertItems(unique);
+
+  // ---------- 阶段二：补正文 ----------
+  let bodiesFetched = 0;
+  if (bodyBudget > 0) {
+    const all = await db.allItems();
+    // 优先补最近发布的、且还没有正文的条目
+    const needBody = all
+      .filter((i) => !(i.bodyText || '').length && !i.restricted)
+      .sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')))
+      .slice(0, bodyBudget);
+
     let d = 0;
-    await pooled(fresh, Math.min(4, concurrency), async (item) => {
+    await pooled(needBody, Math.min(4, concurrency), async (item) => {
       const detail = await fetchDetail(item.url, { title: item.title, date: item.publishedAt });
       d++;
-      onProgress?.({ phase: 'detail', done: d, total: fresh.length, source: item.sourceName });
-      if (detail) {
-        item.title = detail.title || item.title;
-        item.publishedAt = detail.date || item.publishedAt;
-        item.bodyText = detail.bodyText || '';
-        item.bodyHtml = detail.bodyHtml || '';
-        item.attachments = detail.attachments || [];
-        item.restricted = !!detail.restricted;
-        item.summary = detail.restricted
+      onProgress?.({ phase: 'body', done: d, total: needBody.length, source: item.sourceName });
+      if (!detail) return;
+      const patch = {
+        ...item,
+        title: detail.title || item.title,
+        publishedAt: detail.date || item.publishedAt,
+        bodyText: detail.bodyText || '',
+        bodyHtml: detail.bodyHtml || '',
+        attachments: detail.attachments || [],
+        restricted: !!detail.restricted,
+        summary: detail.restricted
           ? '该通知正文需在校园网内访问，请点击「查看原文」跳转官网查看。'
-          : makeSummary(item.bodyText);
-        const again = analyze(item.title, item.bodyText);
-        item.tags = [...new Set([...again.tags, ...again.audiences])];
-        item.important = again.important;
-      }
+          : makeSummary(detail.bodyText || ''),
+      };
+      const again = analyze(patch.title, patch.bodyText);
+      patch.tags = [...new Set([...again.tags, ...again.audiences])];
+      patch.important = again.important;
+      delete patch.id;
+      await db.upsertItems([patch]);
+      bodiesFetched++;
     });
   }
 
-  const res = await db.upsertItems(dedupeByTitle(toSave).map(({ _isNew, ...rest }) => rest));
-  updated = Math.max(0, res.updated);
+  await db.prune(6000);
 
   const elapsed = Math.round((Date.now() - started) / 1000);
-  return { inserted, updated, sources: sources.length, failed, elapsed, total: toSave.length };
+  return {
+    inserted,
+    updated: 0,
+    sources: sources.length,
+    failed,
+    elapsed,
+    total: unique.length,
+    bodiesFetched,
+  };
 }

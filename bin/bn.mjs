@@ -60,10 +60,14 @@ try {
       log.info(`开始抓取 ${targets.length} 个信源…`);
       const fetcher = new Fetcher(store, {
         concurrency: Number(flags.concurrency || 4),
-        enrichLimit: Number(flags.enrich || 25),
+        enrichLimit: Number(flags.enrich || 40),
         onProgress: (p) => log.debug(`  [${p.source}] ${p.done}/${p.total} ${p.title.slice(0, 30)}`),
       });
-      const res = await fetcher.fetchAll(targets, { pages: flags.pages ? Number(flags.pages) : undefined });
+      const res = await fetcher.fetchAll(targets, {
+        pages: flags.pages ? Number(flags.pages) : undefined,
+        sinceMonths: flags.months ? Number(flags.months) : undefined,
+        enrichTotal: flags['enrich-total'] ? Number(flags['enrich-total']) : undefined,
+      });
       console.log('');
       for (const r of res.results) {
         const mark = r.ok ? '✓' : '✗';
@@ -183,7 +187,7 @@ try {
   node bin/bn.mjs categories                 栏目列表
   node bin/bn.mjs serve [--port=5178]        启动 Web 界面
 
-常用参数：--pages=3  --enrich=30  --concurrency=4  --colleges  --db=路径`);
+常用参数：--pages=12  --months=6  --enrich=40  --enrich-total=1200  --concurrency=4  --colleges  --db=路径`);
   }
 } catch (e) {
   console.error('执行失败:', e.stack || e.message);

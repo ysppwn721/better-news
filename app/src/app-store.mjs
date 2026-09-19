@@ -5,7 +5,7 @@
  * 直连学校站点抓列表、存进 IndexedDB、界面从本地库读取。
  * 由于接口名一致（data / stateStore / local），public/app.js 一行都不用改。
  */
-import { SOURCES, CATEGORIES, COLLEGES, daysUntil, extractDeadlines } from '../shared/entry.mjs';
+import { SOURCES, CATEGORIES, COLLEGES, daysUntil, extractDeadlines, titleMatches } from '../shared/entry.mjs';
 import { db } from './storage.mjs';
 import { runScrape, fetchDetail } from './scraper.mjs';
 
@@ -271,13 +271,22 @@ class AppDataSource {
   async triggerFetch() {
     if (runtime.fetching) throw new Error('正在抓取中');
 
-    // 先跑一次轻量抓取（只抓列表），拿到最新标题与日期
-    await this.#scrape({ fetchDetails: false });
-    // 关键：抓取是后台异步的，抓完必须让界面重新渲染，
-    // 否则首次启动时界面停留在「0 条」，用户看到的是空 App（本项目踩过这个坑）。
+    // 阶段一：抓列表（按时间截止翻页，覆盖最近 6 个月）。
+    // 这一步决定「目录是否完整」：学院栏目每页仅 10 条，
+    // 而选课、综测这类学生最关心的通知往往是两三个月前发的，
+    // 不翻页就永远搜不到。
+    //
+    // maxPages 给到 16：高产后栏目（学校通知公告共 70 多页）只翻 10 页
+    // 覆盖不到半年。低产栏目翻一两页就自己停了，所以调大上限主要影响
+    // 那几个高产栏目，代价可以接受。
+    await this.#scrape({ sinceMonths: 6, maxPages: 16, bodyBudget: 0 });
     await this.#notifyChanged();
-    // 抓完后异步补正文，不阻塞界面；补完再刷新一次
-    this.#scrape({ fetchDetails: true, detailLimit: 6 })
+
+    // 阶段二：后台补正文（配额限制，按发布时间倒序逐步补齐）。
+    // 正文不参与搜索（搜索按标题），但它是「截止提醒」的来源——
+    // 报名截止日期几乎只出现在正文里，标题里没有。所以配额给得比早期大：
+    // 300 条约 15MB，且只补还没正文的条目，多跑几轮就会收敛。
+    this.#scrape({ sinceMonths: 1, maxPages: 2, bodyBudget: 300 })
       .then(() => this.#notifyChanged())
       .catch(() => {});
     return { started: true };
@@ -291,15 +300,16 @@ class AppDataSource {
     } catch { /* 界面回调异常不应影响抓取 */ }
   }
 
-  async #scrape({ fetchDetails = false, detailLimit = 0 } = {}) {
+  async #scrape({ sinceMonths = 6, maxPages = 10, bodyBudget = 0 } = {}) {
     runtime.fetching = true;
     runtime.progress = { phase: 'list', done: 0, total: SOURCES.length, source: '' };
     try {
       const res = await runScrape({
         sources: SOURCES,
         concurrency: 6,
-        fetchDetails,
-        detailLimit,
+        sinceMonths,
+        maxPages,
+        bodyBudget,
         onProgress: (p) => { runtime.progress = p; },
       });
       const at = new Date().toISOString();
@@ -307,7 +317,6 @@ class AppDataSource {
       runtime.lastResult = res;
       await db.setMeta('lastScrapeAt', at);
       await db.setMeta('lastResult', res);
-      await db.prune(2000);
       return res;
     } finally {
       runtime.fetching = false;

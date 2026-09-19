@@ -78,12 +78,19 @@ export const db = {
         getReq.onsuccess = () => {
           const existing = getReq.result;
           if (existing) {
-            // 保留首次收录时间与用户的已读状态
+            // 保留首次收录时间与用户的已读状态。
+            //
+            // ⚠ 正文/摘要必须「非空才覆盖」：抓取分两阶段，列表阶段会把每条
+            //   通知以 bodyText:'' 写回一次，若直接展开 item 就会用空串把上一轮
+            //   抓到的正文清空——于是每次刷新都丢掉正文，摘要空白、
+            //   截止提醒（只出现在正文里）也随之失效。踩过一次，别再踩。
             const merged = {
               ...existing,
               ...item,
               firstSeen: existing.firstSeen || item.firstSeen,
-              bodyHtml: item.bodyHtml || existing.bodyHtml,
+              bodyText: item.bodyText || existing.bodyText || '',
+              bodyHtml: item.bodyHtml || existing.bodyHtml || '',
+              summary: item.summary || existing.summary || '',
               attachments: (item.attachments && item.attachments.length) ? item.attachments : existing.attachments,
             };
             updated++;
@@ -121,8 +128,14 @@ export const db = {
     await tx(STORE_META, 'readwrite', (s) => s.clear());
   },
 
-  /** 清理旧条目：只保留最近 N 条，避免长期使用无限增长 */
-  async prune(maxItems = 2000) {
+  /**
+   * 清理旧条目：只保留最近 N 条，避免长期使用无限增长。
+   *
+   * 为什么上限从 2000 提到 6000：翻页改为按时间截止后，一轮就能有 2000+
+   * 条（六个年级、二十多个学院的通知），旧上限会把两三个月前的通知直接删掉，
+   * 学生搜「选课」就又搜不到了。6000 条约 6MB，对手机存储无压力。
+   */
+  async prune(maxItems = 6000) {
     const rows = await tx(STORE_ITEMS, 'readonly', (s) => wrap(s.getAll()));
     if (rows.length <= maxItems) return 0;
     rows.sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')));

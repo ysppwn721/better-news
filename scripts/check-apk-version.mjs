@@ -74,6 +74,10 @@ const checks = [
   ['翻页读「下页」链接（collectListPages）', /collectListPages|nextPageUrl/, appStore],
   ['正文非空才覆盖（不清空已有正文）', /bodyText:\s*item\.bodyText\s*\|\|\s*existing\.bodyText/, appStore],
   ['抓取失败重试', /attempts/, appStore],
+  // v1.3：「看着一直在抓取」的两处修复
+  ['分批入库后通知界面（onBatch）', /onBatch/, appStore],
+  ['后台补正文单独标记（background）', /background:\s*background|runtime\.background/, appStore],
+  ['界面区分「后台补正文」阶段', /st\?\.background/, appJs],
 ];
 
 let stale = 0;

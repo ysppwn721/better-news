@@ -1,8 +1,93 @@
 # 中北大学信息汇总 · Better News
 
-把分散在中北大学各部门官网上、必须挨个点开才能看的通知公告，汇总到一个页面里，按栏目分栏，并对新消息和截止时间做提醒。支持部署成网页（手机可加到主屏幕当 App 用）。
+把分散在中北大学各部门官网上、必须挨个点开才能看的通知公告，汇总到一个页面 / 一个 App 里，按栏目分栏，并对新消息和截止时间做提醒。
 
-**线上地址：<https://ysppwn721.github.io/better-news/>** （手机用浏览器打开后「添加到主屏幕」即可当 App 用）
+**📱 Android App 下载**：<https://github.com/ysppwn721/better-news/releases/download/v1.0.0/app-release.apk>
+
+**🌐 网页版**：<https://ysppwn721.github.io/better-news/>
+
+> **它解决什么问题**：学校的党务通知、学生工作部通知、选课通知、研究生院通知分别挂在不同的网站上，没有统一入口。漏看一条选课或评奖通知，后续计划就会受影响。
+
+---
+
+## 三种使用方式对比
+
+| 方式 | 是否需要服务器 | 是否需要电脑开机 | 数据新鲜度 | 抓取速度 |
+|---|---|---|---|---|
+| **Android App**（推荐） | ❌ | ❌ | 点刷新即抓 | **17 秒抓完 49 个信源** |
+| 网页版（GitHub Pages） | ❌ | ✅ 需本机定时任务 | 最久 1 小时前 | — |
+| Cloudflare 隧道 | ✅ 本机服务 | ✅ | 实时 | 6.7 秒/次加载 |
+
+**App 是唯一做到「不用服务器、也不用电脑开机」的方式**——它自己直接抓取学校站点。
+
+---
+
+## Android App
+
+### 下载安装
+
+<https://github.com/ysppwn721/better-news/releases/latest>
+
+下载 APK 到手机 → 点击安装（首次需在系统设置允许「安装未知来源应用」）。
+
+### 为什么 App 能自己抓，网页版不能
+
+学校所有站点都**不返回 CORS 响应头**。浏览器里的 JavaScript 受同源策略限制，
+无法跨域读取这些页面——所以网页版必须依赖服务器或本机脚本先抓好数据。
+
+App 通过 Capacitor 的原生网络栈发起请求（`CapacitorHttp` 插件），
+原生代码不受浏览器同源策略约束，因此可以直接抓取。
+
+### 实测数据
+
+在真实浏览器里用 `--disable-web-security` 模拟原生请求测得：
+
+| 指标 | 结果 |
+|---|---|
+| 信源 | 49 个全部成功（failures=0） |
+| 条目 | 671 条，**100% 带发布日期** |
+| 耗时 | **17 秒** |
+| 二次抓取 | 新增 0 条（增量去重正确） |
+
+### App 端技术选择
+
+| 决策 | 原因 |
+|---|---|
+| 复用仓库根目录的解析器（`app/shared/entry.mjs`） | 那套代码已覆盖主站拆分日期、学工部 mdy 格式、英文月份、两种文章 URL、受限页识别等差异，是实测出来的，不重写 |
+| IndexedDB 存储（而非 localStorage） | localStorage 仅 5MB 且同步 API，装不下正文摘要 |
+| 数据层接口与网页版完全一致 | `public/app.js` 一行不改即可复用，界面与筛选行为完全一致 |
+| 信源清单构建时生成 | App 端不需要（也无法）跑栏目发现 |
+| 已读/收藏用 URL 哈希作键 | 数据库重建时条目 id 会重排，按 id 存会错位 |
+
+### 自己构建 APK
+
+本机需 Java 21 + Android SDK；若没有（多数情况），推送到 GitHub 由 Actions 构建：
+
+```bash
+cd app
+npm install
+npm run build          # 打包前端资源（含 49 个信源）
+npx cap sync android   # 同步到 Android 工程
+```
+
+CI 构建见 `.github/workflows/android.yml`（Java 21 + runner 预装 Android SDK）。
+推送 `v*` 标签会自动构建并发布到 Releases。
+
+构建后建议校验产物：
+
+```bash
+node scripts/verify-apk.mjs dist/app-release.apk     # 签名校验
+node scripts/inspect-apk.mjs dist/app-release.apk    # 内容完整性
+```
+
+---
+
+## 网页版
+
+**线上地址**：<https://ysppwn721.github.io/better-news/>
+
+数据由本机 Windows 计划任务每小时抓取并推送（见下方「为什么抓取必须在本地」）。
+手机浏览器打开后「添加到主屏幕」可当 App 用（PWA）。
 
 > **它解决什么问题**：学校的党务通知、学生工作部通知、选课通知、研究生院通知分别挂在不同的网站上，没有统一入口。漏看一条选课或评奖通知，后续计划就会受影响。这个工具把这些页面定时抓下来，去重、归类、加标签，让你在一个页面里看完。
 

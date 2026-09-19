@@ -206,12 +206,11 @@ class AppDataSource {
   }
 
   async loadItems() {
-    // 补上搜索用字段：界面会搜 searchText（正文片段）。
-    // 数据库里正文完整，这里截取一份供搜索，避免只搜标题漏掉正文用词。
+    // 补上摘要字段（卡片要显示、搜索标题未命中时也用它兜底）。
+    // 不再生成 searchText：搜索已改为按标题为主，无需把正文带进内存。
     this.items = this.items.map((it) => ({
       ...it,
       excerpt: it.excerpt || (it.bodyText || '').slice(0, 300).replace(/\s+/g, ' ').trim(),
-      searchText: (it.bodyText || '').slice(0, 2000).replace(/\s+/g, ' ').trim(),
     }));
     return this.items;
   }

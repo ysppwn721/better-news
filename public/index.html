@@ -31,8 +31,8 @@
     <div class="stat-chips" id="statChips"></div>
     <button id="btnDeadline" class="btn ghost" title="查看即将截止的事项">⏰ <span id="deadlineBadge" class="badge hidden">0</span></button>
     <button id="btnNotify" class="btn ghost" title="开启浏览器提醒">🔔 提醒</button>
-    <button id="btnFetch" class="btn primary" title="立即抓取最新通知">⟳ 刷新</button>
-    <button id="btnFetchDisabled" class="btn primary hidden" title="静态托管模式">⟳ 刷新</button>
+    <button id="btnFetch" class="btn primary" title="立即抓取最新通知"><span class="btn-icon">⟳</span> 刷新</button>
+    <button id="btnFetchDisabled" class="btn primary hidden" title="重新拉取最新数据快照"><span class="btn-icon">⟳</span> 更新</button>
     <button id="btnSettings" class="btn ghost" title="设置">⚙</button>
   </div>
 </header>
@@ -70,7 +70,7 @@
   <main class="content">
     <div class="toolbar">
       <div class="search-box">
-        <input id="searchInput" type="search" placeholder="搜索标题或正文，如「选课」「奖学金」「推免」…" autocomplete="off">
+        <input id="searchInput" type="search" placeholder="搜索标题，如「选课」「奖学金」。多个词用空格分隔，如「奖学金 公示」" autocomplete="off">
         <button id="btnSearchClear" class="clear hidden" title="清空">×</button>
       </div>
       <div class="toolbar-right">

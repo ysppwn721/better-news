@@ -82,7 +82,21 @@ a:hover { text-decoration: underline; }
 .btn.ghost:hover { background: var(--bg); }
 .btn.small { padding: 4px 9px; font-size: 12px; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn.spin { animation: spin 1s linear infinite; }
+
+/*
+  刷新按钮的加载态。
+  之前给整个按钮加 spin，等于让按钮边框、背景、文字一起转，观感很怪；
+  改为只把按钮里的图标元素转起来，按钮本体保持静止。
+*/
+.btn.spin {
+  animation: none;
+  pointer-events: none;
+  opacity: .75;
+}
+.btn.spin .btn-icon {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .badge {
@@ -406,12 +420,15 @@ a:hover { text-decoration: underline; }
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-actions { gap: 4px; }
 
-  /* 顶栏只留图标，文案收进图标里 */
+  /*
+    顶栏在窄屏只留图标，文字隐藏。
+    注意：图标必须是真实元素（.btn-icon span）而不是 ::after 伪元素，
+    否则「加载中只转图标」这条规则（.btn.spin .btn-icon）会失效。
+  */
   .topbar-actions .btn { padding: 6px 9px; font-size: 15px; }
-  #btnNotify, #btnFetch, #btnFetchDisabled { font-size: 0; }
+  #btnNotify, #btnFetch, #btnFetchDisabled, #btnSettings { font-size: 0; gap: 0; }
+  .topbar-actions .btn-icon { font-size: 16px; }
   #btnNotify::after { content: '🔔'; font-size: 16px; }
-  #btnFetch::after, #btnFetchDisabled::after { content: '⟳'; font-size: 16px; }
-  #btnSettings { font-size: 0; }
   #btnSettings::after { content: '⚙'; font-size: 16px; }
   #btnDeadline { position: relative; }
   #deadlineBadge { position: absolute; top: -2px; right: -2px; }

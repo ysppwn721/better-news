@@ -60,8 +60,19 @@ const state = {
   shown: 0,                // 已渲染条数（客户端分页）
   pageSize: 30,
   detailId: null,
-  prioritySourceId: null,  // 计算机学院的信源 id
+  prioritySourceId: null,   // 计算机学院的主信源 id（用于信源列表标星）
+  prioritySourceIds: [],    // 计算机学院的**全部**信源 id
+  /**
+   * 为什么需要 prioritySourceIds：
+   * 一个学院在配置里对应多个信源（通知公告 / 学院新闻 / 教学科 / 教学动态…）。
+   * 置顶项若只按单个信源过滤，学生看到的就只是其中一个栏目，
+   * 其余栏目（尤其「学院新闻」）看起来像"消失了"——本项目踩过这个坑。
+   */
 };
+
+// 暴露内部状态供自动化测试读取（定位「同样操作结果却不同」这类问题）。
+// 仅诊断用途，界面逻辑不依赖它。
+if (typeof window !== 'undefined') window.__bnState = state;
 
 let INDEX = null;
 let ITEMS = [];
@@ -189,11 +200,20 @@ function applyFilters() {
   if (f.has('unread')) list = list.filter((i) => !stateStore.isRead(i));
   if (f.has('important')) list = list.filter((i) => i.important);
   if (f.has('starred')) list = list.filter((i) => stateStore.isStarred(i));
-  if (f.has('college') && state.prioritySourceId) list = list.filter((i) => i.sourceId === state.prioritySourceId);
+  if (f.has('college')) {
+    const ids = state.prioritySourceIds.length ? state.prioritySourceIds : [state.prioritySourceId];
+    list = list.filter((i) => ids.includes(i.sourceId));
+  }
   if (f.has('deadline')) {
+    // 按「截止日期」而非「条目」计数：一条通知可能有多个截止时间，
+    // 这里对同一条只计一次（与卡片上的角标一致）
+    const seenIds = new Set();
     list = list.filter((i) => {
       const d = deadlineByItem.get(i.id);
-      return d && d.daysLeft >= 0;
+      if (!d || d.daysLeft < 0) return false;
+      if (seenIds.has(i.id)) return false;
+      seenIds.add(i.id);
+      return true;
     });
   }
   if (f.has('today') || f.has('week')) {
@@ -232,72 +252,24 @@ function applyFilters() {
 }
 
 /**
- * 搜索匹配，返回相关度分值（越高越相关）。
+ * 搜索匹配（按标题搜索）。
  *
- * 分层的意义在于排序：只区分「精确/模糊」不够——搜「选课」时有 300+ 条
- * 正文里提到选课的通知，与标题就叫「…选课的通知」的混在一起，
- * 用户最想要的那条被淹没。按命中位置细分后，标题命中稳定排在前面。
+ * 语义（按用户明确要求）：
+ *   · 只看标题
+ *   · 多个关键词以空格分隔，**每个词都要出现在标题里**（顺序不限）
+ *     例：「奖学金 公示」= 标题同时含这两个词
  *
- *   5 = 标题含关键词（用户多半就是在找这类）
- *   4 = 来源或栏目含关键词
- *   3 = 摘要含关键词
- *   2 = 正文片段含关键词
- *   1 = 分词覆盖命中（用户说法与原文不完全一致）
- *   0 = 不匹配
+ * 为什么不做正文/摘要匹配：曾经把整篇正文纳入并加模糊兜底，
+ * 结果是搜什么都出一大堆、看不出关联，用户直接反馈「搜索几乎没用」。
+ * 纯标题匹配的结果集小但条条对得上，符合「按标题找通知」的实际用法。
  *
- * 关键前提：搜索范围包含正文片段（searchText）——此前只搜标题+摘要，
- * 导致「困难认定」（正文用词、标题里没有）完全搜不到，
- * 这是用户反馈「搜索几乎没用」的真正原因。
+ * 返回 1 表示命中（统一分值，排序仍按发布时间倒序）。
  */
 function matchScore(item, q) {
+  const terms = q.split(/\s+/).filter(Boolean);
+  if (!terms.length) return 0;
   const title = (item.title || '').toLowerCase();
-  const excerpt = (item.excerpt || '').toLowerCase();
-  const searchText = (item.searchText || '').toLowerCase();
-  const subcategory = (item.subcategory || '').toLowerCase();
-  const tags = (item.tags || []).join(' ').toLowerCase();
-  const source = (item.sourceName || '').toLowerCase();
-
-  if (title.includes(q)) return 6;
-  if (excerpt.includes(q)) return 5;
-  // 注：categoryName（如「教务选课」）刻意不参与整串匹配——
-  // 栏目名含「选课」会让该栏目下 300 条通知全部命中，把真正的选课通知淹没。
-  // 标签与二级分类可以参与（它们描述的是内容本身）。
-  if (tags.includes(q) || subcategory.includes(q)) return 4;
-  if (searchText.includes(q)) return 3;
-  if (source.includes(q)) return 2;
-  if (q.length < 3) return 0;
-
-  const haystack = `${title} ${excerpt} ${searchText} ${tags}`;
-
-  // 分词覆盖兜底：处理「用户说法与原文不一致」，
-  // 例如数据写「家庭经济困难本科学生认定工作」而用户搜「困难认定」。
-  //
-  // 两道约束缺一不可：
-  //   1) 查询的每一段都要被完整覆盖（避免「国家奖学金」匹配到「学业奖学金」）
-  //   2) 查询里的每个单字都必须出现过（避免「招生简章」匹配到只有「招生就业」的条目）
-  for (const ch of q) {
-    if (!haystack.includes(ch)) return 0;
-  }
-
-  const cuts = q.length >= 4
-    ? [[0, Math.ceil(q.length * 0.6)], [Math.ceil(q.length * 0.6), q.length]]
-    : [[0, q.length]];
-
-  for (const [from, to] of cuts) {
-    const part = q.slice(from, to);
-    const coveredPart = new Array(part.length).fill(false);
-    for (let n = Math.min(4, part.length); n >= 2; n--) {
-      for (let i = 0; i + n <= part.length; i++) {
-        const gram = part.slice(i, i + n);
-        if (haystack.includes(gram)) {
-          for (let k = i; k < i + n; k++) coveredPart[k] = true;
-        }
-      }
-    }
-    if (!coveredPart.every(Boolean)) return 0;
-  }
-
-  return 1;
+  return terms.every((t) => title.includes(t)) ? 1 : 0;
 }
 
 // ============================================================
@@ -325,9 +297,13 @@ function renderCategories() {
     state.category === 'all' && !state.source && !state.filters.has('college'),
     () => { resetView(); render(); }, '全部来源的通知');
 
-  // 优先展示用户所在学院
-  if (state.prioritySourceId && INDEX.priorityCollegeName) {
-    const myItems = ITEMS.filter((i) => i.sourceId === state.prioritySourceId);
+  // 优先展示用户所在学院：聚合该学院的**全部**栏目，
+  // 只取一个信源会让其它栏目（如「学院新闻」）看起来不存在。
+  const priorityIds = state.prioritySourceIds.length
+    ? state.prioritySourceIds
+    : (state.prioritySourceId ? [state.prioritySourceId] : []);
+  if (priorityIds.length && INDEX.priorityCollegeName) {
+    const myItems = ITEMS.filter((i) => priorityIds.includes(i.sourceId));
     const unread = myItems.filter((i) => !stateStore.isRead(i)).length;
     addItem(`★ ${INDEX.priorityCollegeName}`, '★', '#c2185b', myItems.length, unread,
       state.filters.has('college') && state.category === 'all',
@@ -335,7 +311,7 @@ function renderCategories() {
         resetView();
         state.filters.add('college');
         render();
-      }, `${INDEX.priorityCollegeName}发布的全部通知`);
+      }, `${INDEX.priorityCollegeName}发布的全部通知（含各栏目）`);
   }
 
   for (const c of INDEX.categories) {
@@ -855,8 +831,23 @@ async function triggerFetch() {
 // 主渲染
 // ============================================================
 
+/**
+ * 重置视图。
+ *
+ * 注意必须一并清空快速筛选（state.filters）——否则「★ 我的学院」这类
+ * 通过 filters 实现的筛选会残留：点「全部通知」后列表仍然只显示该学院，
+ * 用户会被永久困在这个筛选里（本项目踩过这个坑：
+ * 表现为点「全部通知」没反应、搜索也被限缩在该学院内）。
+ *
+ * @param {boolean} keepCategory 为 true 时保留当前栏目（切换标签/信源时用）
+ */
 function resetView(keepCategory = false) {
-  if (!keepCategory) { state.category = 'all'; state.source = null; }
+  if (!keepCategory) {
+    state.category = 'all';
+    state.source = null;
+    state.tag = null;
+    state.filters.clear();
+  }
   state.shown = state.pageSize;
 }
 
@@ -885,15 +876,9 @@ async function updateSubtitle() {
   } else {
     if (mode) mode.textContent = '线上数据';
     $('#brandSub').textContent = `数据更新于 ${relTime(INDEX.generatedAt)} · 共 ${INDEX.total} 条`;
-    // 静态模式：显示「检查更新」按钮（重新拉取快照）
+    // 静态模式：显示「更新」按钮（重新拉取快照）
     $('#btnFetch').classList.add('hidden');
-    const btn = $('#btnFetchDisabled');
-    btn.classList.remove('hidden');
-    if (!btn.dataset.labeled) {
-      btn.textContent = '⟳ 更新';
-      btn.title = '重新拉取最新数据快照';
-      btn.dataset.labeled = '1';
-    }
+    $('#btnFetchDisabled').classList.remove('hidden');
   }
 }
 
@@ -1233,12 +1218,23 @@ async function init() {
       $('#brandSub').textContent = `数据更新于 ${relTime(INDEX.generatedAt)} · 共 ${INDEX.total} 条`;
     }
 
-    // 优先学院：从信源里找到计算机学院对应的栏目
+    // 优先学院：聚合该学院在配置里的全部信源（通知公告 / 学院新闻 / 教学科 …）。
+    // 信源 id 形如 col-cst、col-cst-1、col-cst-2，按前缀归组；
+    // 只认一个信源会导致该学院其它栏目在界面上"消失"。
     const priorityName = INDEX.priorityCollegeName;
     if (priorityName) {
-      const src = (INDEX.sources || []).find((s) => s.name.includes(priorityName.replace('学院', '')) && s.categoryId === 'college')
-        || (INDEX.sources || []).find((s) => s.name.includes('计算机'));
-      if (src) state.prioritySourceId = src.id;
+      const all = INDEX.sources || [];
+      // 先按名字找出主信源，取出它的基础 id（去掉 -N 后缀），再收集同前缀的
+      const primary = all.find((s) => (s.name || '').startsWith(priorityName) && s.categoryId === 'college')
+        || all.find((s) => (s.name || '').includes('计算机') && s.categoryId === 'college')
+        || all.find((s) => (s.name || '').startsWith(priorityName.replace('学院', '')) && s.categoryId === 'college');
+      if (primary) {
+        const base = primary.id.replace(/-\d+$/, '');
+        state.prioritySourceId = primary.id;
+        state.prioritySourceIds = all
+          .filter((s) => s.id === base || s.id.startsWith(`${base}-`))
+          .map((s) => s.id);
+      }
     }
 
     resetView();

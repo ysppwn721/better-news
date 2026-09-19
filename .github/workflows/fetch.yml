@@ -96,9 +96,22 @@ jobs:
           git add public/data config/discovered.json
           if git diff --staged --quiet; then
             echo "数据无变化，无需提交"
-          else
-            COUNT=$(node -e "console.log(require('./public/data/index.json').total)")
-            git commit -m "chore(data): 更新通知快照（共 ${COUNT} 条）[skip ci]"
-            git push
-            echo "已提交并推送，Cloudflare Pages 将自动重新部署"
+            exit 0
           fi
+
+          COUNT=$(node -e "console.log(require('./public/data/index.json').total)")
+          git commit -m "chore(data): 更新通知快照（共 ${COUNT} 条）[skip ci]"
+
+          # 推送可能被拒：checkout 到 push 之间若有人（或另一次运行）推了新提交，
+          # 本地分支就落后了。这里先 rebase 再推；数据文件冲突时以本次抓取结果为准。
+          for i in 1 2 3; do
+            if git push; then
+              echo "已提交并推送，站点会自动重新发布"
+              exit 0
+            fi
+            echo "推送被拒，第 ${i} 次重试：先同步远端…"
+            git pull --rebase --autostash -X ours origin main || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::连续 3 次推送失败，请检查仓库权限或分支保护设置"
+          exit 1

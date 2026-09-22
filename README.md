@@ -310,18 +310,46 @@ start powershell -ArgumentList "-NoExit","-Command","cd '$PWD'; node bin/bn.mjs 
 
 ### 方案 A：GitHub Pages（当前使用，无需额外账号）
 
-**抓取与发布**：注册一次计划任务，之后每小时自动更新。
+**抓取与发布**：注册一次计划任务，之后每 3 小时自动更新。
 
 ```powershell
-# 注册计划任务（每小时抓取并发布）
+# 注册计划任务（每 3 小时抓取并发布）
 powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1 -Register
 
-# 立即跑一次（不等下一小时）
+# 立即跑一次（不等下一轮）
 powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1
 
-# 查看 / 取消
+# 查看状态
 Get-ScheduledTask -TaskName 'BetterNews-Scrape'
+
+# 取消
 powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1 -Unregister
+```
+
+### 暂时不想让它自动抓了（停止定期查询）
+
+本机其实有**两个**抓取器，要停就两个都停（只停一个，另一个还在跑）：
+
+| # | 抓取器 | 频率 | 停用方式 |
+|---|---|---|---|
+| 1 | Windows 计划任务 `BetterNews-Scrape` | 每 3 小时，抓完导出快照并 push 到 GitHub | `Disable-ScheduledTask -TaskName 'BetterNews-Scrape'`（保留任务，日后 `Enable-ScheduledTask` 即可恢复；要彻底删用 `-Unregister`） |
+| 2 | 本地服务自带的 cron | 默认每 30 分钟（仅服务开着时） | `node scripts/disable-cron.mjs` |
+
+第 2 个走的是 `PUT /api/settings`，服务端会 `scheduleCron()`（先 stop 旧任务再按新设置决定
+是否重建），所以**不用重启服务**就停下来了；设置写进 `config/settings.json`：
+
+```json
+{ "autoFetch": false, "cron": "" }
+```
+
+> 也可以用环境变量 `BN_CRON=off` 关（注意 `'' || 默认值` 会退回默认值，空串是假值，
+> 关闭必须用显式关键字——这里踩过一次）。但环境变量要**重启服务**才生效，
+> 且新起进程会继承；改设置文件是立即生效且更直观的做法。
+
+停用后站点照常可访问，只是数据停在你上次抓取的那一刻——手动更新：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\scrape-and-publish.ps1
 ```
 
 运行日志写在 `data/logs/scrape-YYYYMMDD.log`。
